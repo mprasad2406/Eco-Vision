@@ -55,6 +55,33 @@ export default function Categories() {
         </div>
       </header>
 
+      <section className="categories-overview premium-card">
+        <div className="overview-text">
+          <h2>Overview</h2>
+          <p>
+            Eco-Vision recognizes <strong>17 waste categories</strong> spanning e-waste,
+            recyclables, organics, and general trash. Each category card summarizes
+            the material type, common examples, and safe disposal guidance. Use the
+            search bar to filter by name or description, and click any card to open
+            a detailed profile.
+          </p>
+        </div>
+        <div className="overview-stats">
+          <div className="overview-stat">
+            <span className="stat-number">17</span>
+            <span className="stat-label">Total Categories</span>
+          </div>
+          <div className="overview-stat">
+            <span className="stat-number">4</span>
+            <span className="stat-label">Core Groups</span>
+          </div>
+          <div className="overview-stat">
+            <span className="stat-number">1</span>
+            <span className="stat-label">Click for Details</span>
+          </div>
+        </div>
+      </section>
+
       <div className="categories-grid">
         {filteredCategories.map((cat) => (
           <div 
@@ -178,6 +205,52 @@ export default function Categories() {
           grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
           gap: 2rem;
           margin-bottom: 5rem;
+        }
+
+        .categories-overview {
+          width: 100%;
+          max-width: 1000px;
+          margin: 0 auto 3rem;
+          padding: 2rem;
+          display: grid;
+          grid-template-columns: 1.5fr 1fr;
+          gap: 2rem;
+          align-items: center;
+        }
+        .categories-overview h2 {
+          font-size: 1.6rem;
+          margin-bottom: 0.75rem;
+          color: var(--text-main);
+        }
+        .categories-overview p {
+          color: var(--text-muted);
+          line-height: 1.7;
+          margin: 0;
+        }
+        .overview-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1rem;
+        }
+        .overview-stat {
+          background: rgba(16,185,129,0.08);
+          border: 1px solid rgba(16,185,129,0.15);
+          border-radius: 16px;
+          padding: 1rem;
+          text-align: center;
+        }
+        .stat-number {
+          display: block;
+          font-size: 1.6rem;
+          font-weight: 800;
+          color: var(--primary);
+        }
+        .stat-label {
+          display: block;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          margin-top: 0.35rem;
         }
 
         .cat-card {
@@ -350,7 +423,10 @@ export default function Categories() {
           .modal-header { flex-direction: column; text-align: center; gap: 1rem; }
           .detail-modal { padding: 2rem; }
         }
+        @media (max-width: 900px) {
+          .categories-overview { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );
-}
+}

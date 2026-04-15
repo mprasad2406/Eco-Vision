@@ -32,7 +32,6 @@ export default function Navbar() {
           setIsListening(false);
         }
       );
-      setRecognition(rec);
       setIsSpeechEnabled(true);
     } else {
       if (recognition) speechService.stopListening(recognition);
@@ -59,6 +58,9 @@ export default function Navbar() {
       "categor": "/categories",
       "stats": "/stats",
       "statistic": "/stats",
+      "nlp": "/nlp",
+      "query": "/nlp",
+      "natural": "/nlp",
       "about": "/about",
       "contact": "/contact"
     };
@@ -84,7 +86,9 @@ export default function Navbar() {
             { path: "/predict", label: "Predict", icon: "📸" },
             { path: "/categories", label: "Categories", icon: "📦" },
             { path: "/stats", label: "Stats", icon: "📊" },
-            { path: "/about", label: "About", icon: "ℹ️" }
+            { path: "/nlp", label: "NLP Query", icon: "🧠" },
+            { path: "/about", label: "About", icon: "ℹ️" },
+            { path: "/contact", label: "Contact", icon: "✉️" }
           ].map((item) => (
             <NavLink 
               key={item.path}

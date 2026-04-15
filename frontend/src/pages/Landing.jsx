@@ -1,16 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
+import heroEcoFuture from "../assets/LandingPageImages/The Eco-Future Hero.jpg";
+import smartHubBin from "../assets/LandingPageImages/The Smart Hub Bin.jpg";
+import pureMaterials from "../assets/LandingPageImages/The Purity of Materials.jpg";
+import digitalEcoFlow from "../assets/LandingPageImages/Digital Eco-Flow (Abstract).jpg";
+import advancedAiDetection from "../assets/LandingPageImages/Advanced AI Detection.jpg";
+import automatedRecycling from "../assets/LandingPageImages/Automated Recycling Robotics.jpg";
+import globalConnectivity from "../assets/LandingPageImages/Global Connectivity.jpg";
+import sustainableCommunity from "../assets/LandingPageImages/Sustainable Community Lifestyle.jpg";
+import ecoCity from "../assets/eco_city.png";
+import heroPremium from "../assets/hero_premium.png";
+import smartDetection from "../assets/smart_detection.png";
 
 export default function Landing() {
   const navigate = useNavigate();
   const [activeSlide, setActiveSlide] = useState(0);
 
   const slides = [
-    { url: "https://images.unsplash.com/photo-1532996122724-8f3c2cd83c5d?auto=format&fit=crop&q=80&w=1200", title: "Smart Segregation", desc: "AI-driven waste sorting with precision" },
-    { url: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=1200", title: "Eco-Future", desc: "Building sustainable cities through technology" },
-    { url: "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?auto=format&fit=crop&q=80&w=1200", title: "Precision Analysis", desc: "Real-time material detection and classification" },
-    { url: "https://images.unsplash.com/photo-1595273670150-db0d3bf39241?auto=format&fit=crop&q=80&w=1200", title: "Resource Recovery", desc: "Optimizing the circular economy" }
+    { url: heroEcoFuture, title: "Eco-Future", desc: "Building sustainable cities through technology" },
+    { url: heroPremium, title: "Hero Vision", desc: "Premium-grade sustainability experience" },
+    { url: ecoCity, title: "Eco City", desc: "Smart urban waste intelligence" },
+    { url: smartDetection, title: "Smart Detection", desc: "AI-assisted material recognition" },
+    { url: smartHubBin, title: "Smart Segregation", desc: "AI-driven waste sorting with precision" },
+    { url: pureMaterials, title: "Purity of Materials", desc: "Real-time material detection and classification" },
+    { url: digitalEcoFlow, title: "Digital Eco-Flow", desc: "Optimizing the circular economy" },
+    { url: advancedAiDetection, title: "Advanced AI Detection", desc: "Deep learning at the edge" },
+    { url: automatedRecycling, title: "Automated Recycling", desc: "Robotics for efficient sorting" },
+    { url: globalConnectivity, title: "Global Connectivity", desc: "Connected bins, connected cities" },
+    { url: sustainableCommunity, title: "Sustainable Community", desc: "People-first circular systems" }
   ];
 
   useEffect(() => {

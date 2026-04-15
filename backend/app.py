@@ -13,12 +13,13 @@ warnings.filterwarnings('ignore')
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 from PIL import Image
 import tensorflow as tf
 import json
 from pathlib import Path
+import re
 
 # Suppress TensorFlow verbosity
 tf.get_logger().setLevel('ERROR')
@@ -108,6 +109,23 @@ class Statistics(db.Model):
             'most_common': self.most_common_category
         }
 
+class NLPQueryLog(db.Model):
+    """Log all NLP queries for analytics"""
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    query = db.Column(db.Text, nullable=False)
+    response = db.Column(db.Text, nullable=False)
+    intent = db.Column(db.String(50))
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat(),
+            'query': self.query,
+            'response': self.response,
+            'intent': self.intent
+        }
+
 # =================== TRASH DETECTION MODEL ===================
 
 class WasteClassifier:
@@ -126,18 +144,37 @@ class WasteClassifier:
     def load_model(self):
         """Load pre-trained model (can be replaced with actual model path)"""
         try:
-            model_path = 'models/waste_classifier_model.h5'
-            if os.path.exists(model_path):
-                self.model = tf.keras.models.load_model(model_path)
+            repo_root = Path(__file__).resolve().parent.parent
+            model_path = repo_root / 'models' / 'waste_classifier_model.h5'
+            class_names_path = repo_root / 'models' / 'class_names.json'
+            if model_path.exists():
+                self.model = tf.keras.models.load_model(str(model_path))
+                self.has_rescaling = any(
+                    layer.__class__.__name__ == 'Rescaling' for layer in self.model.layers
+                )
+                if class_names_path.exists():
+                    try:
+                        with open(class_names_path, 'r', encoding='utf-8') as f:
+                            loaded_names = json.load(f)
+                        output_classes = int(self.model.output_shape[-1])
+                        if isinstance(loaded_names, list) and len(loaded_names) == output_classes:
+                            self.class_names = loaded_names
+                            print(f"✓ Class labels loaded from: {class_names_path}")
+                        else:
+                            print(f"⚠️  class_names.json length mismatch (expected {output_classes})")
+                    except Exception as e:
+                        print(f"⚠️  Failed to load class_names.json: {e}")
                 print(f"✓ Model loaded from: {model_path}")
             else:
                 print(f"⚠️  Model not found at {model_path}")
                 print(f"✓ Using MOCK PREDICTIONS (place trained model in models/ folder)")
                 self.model = None
+                self.has_rescaling = False
         except Exception as e:
             print(f"⚠️  Error loading model: {e}")
             print(f"✓ Using MOCK PREDICTIONS instead")
             self.model = None
+            self.has_rescaling = False
     
     def predict(self, image_path):
         """Make prediction on waste image"""
@@ -145,7 +182,9 @@ class WasteClassifier:
             # Load and process image
             img = Image.open(image_path).convert('RGB')
             img = img.resize((224, 224))
-            img_array = np.array(img) / 255.0
+            img_array = np.array(img).astype('float32')
+            if not self.has_rescaling:
+                img_array = img_array / 255.0
             img_array = np.expand_dims(img_array, axis=0)
             
             # Get predictions
@@ -328,55 +367,290 @@ def get_categories():
 
 @app.route('/api/nlp/query', methods=['POST'])
 def nlp_query():
-    """Natural Language Query interface for waste statistics"""
+    """Natural Language Query interface for waste statistics - enhanced intent engine"""
     try:
         data = request.json
-        query = data.get('query', '').lower()
+        raw_query = data.get('query', '')
+        query = raw_query.lower().strip()
         
         if not query:
             return jsonify({'error': 'No query provided'}), 400
-            
-        stats = Statistics.query.first()
-        if not stats:
-            return jsonify({'answer': "No statistics are available yet. Try classifying some waste first!"}), 200
-
-        # Simple keyword-based NLP logic
-        if 'total' in query or 'how many' in query:
-            if 'upload' in query:
-                return jsonify({'answer': f"A total of {stats.total_uploads} images have been explicitly uploaded."}), 200
-            if 'camera' in query:
-                return jsonify({'answer': f"A total of {stats.total_cameras} images were captured via camera."}), 200
-            return jsonify({'answer': f"The system has processed a total of {stats.total_predictions} waste items so far."}), 200
-            
-        if 'accuracy' in query or 'performance' in query or 'confident' in query:
-            return jsonify({'answer': f"The model is performing well with an average confidence score of {round(stats.average_confidence * 100, 2)}%."}), 200
-            
-        if 'most' in query or 'common' in query or 'frequent' in query:
-            category = stats.most_common_category if stats.most_common_category else "not determined yet"
-            return jsonify({'answer': f"The most frequently detected waste category is '{category}'."}), 200
-            
-        if 'plastic' in query:
-            count = Prediction.query.filter_by(category='Plastic').count()
-            return jsonify({'answer': f"I've found {count} plastic items in the current records."}), 200
-            
-        if 'metal' in query:
-            count = Prediction.query.filter_by(category='Metal').count()
-            return jsonify({'answer': f"There are {count} metal items classified so far."}), 200
-
-        if 'organic' in query or 'food' in query:
-            count = Prediction.query.filter_by(category='Organic').count()
-            return jsonify({'answer': f"There are {count} organic waste entries in the database."}), 200
-
-        if 'electronic' in query or 'e-waste' in query or 'pcb' in query:
-            count = Prediction.query.filter(Prediction.category.in_(['PCB', 'Keyboard', 'Mobile', 'Mouse', 'Printer', 'Television'])).count()
-            return jsonify({'answer': f"Electronic waste (E-waste) accounts for {count} of our detected items."}), 200
-
-        return jsonify({
-            'answer': "I'm not sure about that specific detail. You can ask about 'total waste', 'accuracy', 'most common waste', or specific types like 'plastic' or 'e-waste'."
-        }), 200
+        
+        answer, intent = _process_nlp_query(query)
+        
+        # Log the query
+        log = NLPQueryLog(query=raw_query, response=answer, intent=intent)
+        db.session.add(log)
+        db.session.commit()
+        
+        return jsonify({'answer': answer, 'intent': intent}), 200
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+def _process_nlp_query(query):
+    """Core NLP intent processor — returns (answer, intent_label)"""
+    stats = Statistics.query.first()
+    total_predictions = stats.total_predictions if stats else Prediction.query.count()
+    total_uploads = stats.total_uploads if stats else 0
+    total_cameras = stats.total_cameras if stats else 0
+    avg_confidence = stats.average_confidence if stats else 0.0
+    
+    # ── today / this week / this month time filters ──────────────────────
+    now = datetime.utcnow()
+    today_start    = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start     = today_start - timedelta(days=now.weekday())
+    month_start    = today_start.replace(day=1)
+    
+    def count_in_range(start, category=None):
+        q = Prediction.query.filter(Prediction.timestamp >= start)
+        if category:
+            q = q.filter_by(category=category)
+        return q.count()
+    
+    # ── intent: help ─────────────────────────────────────────────────────
+    if any(w in query for w in ['help', 'what can', 'what do you know', 'commands', 'questions']):
+        return (
+            "I can answer questions like: 'How many items today?', "
+            "'What is the most common waste?', 'Show plastic count this week', "
+            "'Average confidence?', 'How many e-waste items?', "
+            "'Compare plastic vs metal', 'Any glass detected today?'",
+            'help'
+        )
+    
+    # ── intent: today count ───────────────────────────────────────────────
+    if 'today' in query:
+        category = _extract_category(query)
+        count = count_in_range(today_start, category)
+        label = f"{category} waste" if category else "waste items"
+        return f"Today, {count} {label} {'have' if count != 1 else 'has'} been classified.", 'today_count'
+    
+    # ── intent: this week count ───────────────────────────────────────────
+    if 'this week' in query or 'week' in query:
+        category = _extract_category(query)
+        count = count_in_range(week_start, category)
+        label = f"{category} waste" if category else "waste items"
+        return f"This week, {count} {label} have been classified.", 'week_count'
+    
+    # ── intent: this month count ──────────────────────────────────────────
+    if 'this month' in query or 'month' in query:
+        category = _extract_category(query)
+        count = count_in_range(month_start, category)
+        label = f"{category} waste" if category else "waste items"
+        return f"This month, {count} {label} have been classified.", 'month_count'
+    
+    # ── intent: comparison (plastic vs metal, etc.) ───────────────────────
+    if ' vs ' in query or ' versus ' in query or 'compare' in query:
+        cats = re.findall(r'(plastic|metal|glass|paper|organic|cardboard|battery|electronic|e-waste|pcb)', query)
+        if len(cats) >= 2:
+            cat_a = _normalize_category(cats[0])
+            cat_b = _normalize_category(cats[1])
+            count_a = Prediction.query.filter_by(category=cat_a).count()
+            count_b = Prediction.query.filter_by(category=cat_b).count()
+            winner = cat_a if count_a >= count_b else cat_b
+            return (
+                f"{cat_a}: {count_a} items vs {cat_b}: {count_b} items. "
+                f"{winner} is more common in the system.",
+                'comparison'
+            )
+    
+    # ── intent: accuracy / confidence / performance ───────────────────────
+    if any(w in query for w in ['accuracy', 'accurate', 'confidence', 'confident', 'performance', 'model', 'score', 'precision', 'f1']):
+        avg = round(avg_confidence * 100, 2)
+        level = 'excellent' if avg >= 85 else 'good' if avg >= 70 else 'moderate'
+        return (
+            f"The model is performing at a {level} level with an average confidence of {avg}%. "
+            f"Total predictions made: {total_predictions}.",
+            'performance'
+        )
+    
+    # ── intent: most common / top category ───────────────────────────────
+    if any(w in query for w in ['most', 'top', 'common', 'frequent', 'dominant', 'highest']):
+        # compute live
+        from sqlalchemy import func
+        result = db.session.query(
+            Prediction.category, func.count(Prediction.category).label('cnt')
+        ).group_by(Prediction.category).order_by(db.desc('cnt')).first()
+        if result:
+            return f"The most common waste type is '{result[0]}' with {result[1]} detections.", 'top_category'
+        return "Not enough data to determine the top category yet.", 'top_category'
+
+    # ── intent: category count ───────────────────────────────────────────
+    if any(w in query for w in ['category', 'categories', 'classes', 'labels', 'types']):
+        total_categories = len(classifier.class_names)
+        return (
+            f"The model supports {total_categories} waste categories in total.",
+            'category_count'
+        )
+    
+    # ── intent: total / how many (generic) ───────────────────────────────
+    if any(w in query for w in ['total', 'how many', 'count', 'number']):
+        if 'upload' in query:
+            return f"A total of {total_uploads} images have been uploaded to the system.", 'total_uploads'
+        if 'camera' in query:
+            return f"A total of {total_cameras} images were captured via camera scan.", 'total_camera'
+        category = _extract_category(query)
+        if category:
+            count = Prediction.query.filter_by(category=category).count()
+            return f"There are {count} {category} items classified in the system.", 'category_count'
+        return f"The system has processed a total of {total_predictions} waste classifications so far.", 'total_count'
+    
+    # ── intent: specific categories ───────────────────────────────────────
+    cat = _extract_category(query)
+    if cat:
+        count = Prediction.query.filter_by(category=cat).count()
+        pct = round(count / total_predictions * 100, 1) if total_predictions > 0 else 0
+        return f"There are {count} {cat} items detected ({pct}% of all classifications).", 'category_count'
+    
+    # ── intent: e-waste ───────────────────────────────────────────────────
+    if any(w in query for w in ['electronic', 'e-waste', 'ewaste', 'pcb', 'circuit']):
+        e_cats = ['PCB', 'Keyboard', 'Mobile', 'Mouse', 'Printer', 'Television', 'Microwave', 'Washing Machine', 'Player']
+        count = Prediction.query.filter(Prediction.category.in_(e_cats)).count()
+        return f"Electronic waste (E-waste) accounts for {count} of all detected items. Top categories: PCB, Mobile, Television.", 'ewaste'
+    
+    # ── intent: last / recent ─────────────────────────────────────────────
+    if any(w in query for w in ['last', 'recent', 'latest', 'newest']):
+        recent = Prediction.query.order_by(Prediction.timestamp.desc()).first()
+        if recent:
+            delta = now - recent.timestamp
+            mins = int(delta.total_seconds() / 60)
+            time_str = f"{mins} min ago" if mins < 60 else f"{mins // 60}h ago"
+            return (
+                f"The last classification was '{recent.category}' with {round(recent.confidence * 100, 1)}% confidence, "
+                f"detected {time_str}.",
+                'recent'
+            )
+        return "No recent classifications found.", 'recent'
+    
+    # ── intent: recyclable ────────────────────────────────────────────────
+    if any(w in query for w in ['recycl', 'recyclable', 'recycle']):
+        recyclable_cats = ['Paper', 'Cardboard', 'Glass', 'Metal', 'Plastic']
+        count = Prediction.query.filter(Prediction.category.in_(recyclable_cats)).count()
+        pct = round(count / total_predictions * 100, 1) if total_predictions > 0 else 0
+        return f"{count} items ({pct}%) are recyclable materials (Paper, Cardboard, Glass, Metal, Plastic).", 'recyclable'
+    
+    # ── intent: trend / growth ────────────────────────────────────────────
+    if any(w in query for w in ['trend', 'growth', 'growing', 'increasing']):
+        last7 = count_in_range(now - timedelta(days=7))
+        prev7 = Prediction.query.filter(
+            Prediction.timestamp >= now - timedelta(days=14),
+            Prediction.timestamp < now - timedelta(days=7)
+        ).count()
+        if prev7 > 0:
+            change = round((last7 - prev7) / prev7 * 100, 1)
+            direction = "up" if change >= 0 else "down"
+            return f"Classification volume is {direction} {abs(change)}% this week vs last week ({last7} vs {prev7} items).", 'trend'
+        return f"This week had {last7} classifications. Not enough history for trend comparison.", 'trend'
+    
+    # ── fallback ──────────────────────────────────────────────────────────
+    return (
+        "I didn't quite catch that. Try asking: 'How many items today?', "
+        "'Most common waste type?', 'Plastic count this week?', or 'Model accuracy?'",
+        'fallback'
+    )
+
+
+def _extract_category(query):
+    """Extract a specific waste category from query text"""
+    mapping = {
+        'plastic': 'Plastic',
+        'metal': 'Metal',
+        'glass': 'Glass',
+        'paper': 'Paper',
+        'organic': 'Organic',
+        'food': 'Organic',
+        'cardboard': 'Cardboard',
+        'battery': 'Battery',
+        'batteries': 'Battery',
+        'keyboard': 'Keyboard',
+        'mobile': 'Mobile',
+        'phone': 'Mobile',
+        'mouse': 'Mouse',
+        'printer': 'Printer',
+        'television': 'Television',
+        'tv': 'Television',
+        'microwave': 'Microwave',
+        'washing machine': 'Washing Machine',
+        'pcb': 'PCB',
+        'circuit': 'PCB',
+        'trash': 'Trash',
+        'player': 'Player',
+    }
+    for keyword, category in mapping.items():
+        if keyword in query:
+            return category
+    return None
+
+
+def _normalize_category(name):
+    """Normalize a raw string to DB category name"""
+    e_map = {
+        'e-waste': 'PCB', 'electronic': 'PCB', 'ewaste': 'PCB',
+        'phone': 'Mobile', 'tv': 'Television'
+    }
+    if name in e_map:
+        return e_map[name]
+    return name.capitalize()
+
+@app.route('/api/nlp/history', methods=['GET'])
+def nlp_history():
+    """Return recent NLP query history"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        logs = NLPQueryLog.query.order_by(NLPQueryLog.timestamp.desc()).limit(limit).all()
+        return jsonify([l.to_dict() for l in logs]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/nlp/suggestions', methods=['GET'])
+def nlp_suggestions():
+    """Return dynamic suggested questions based on available data"""
+    stats = Statistics.query.first()
+    suggestions = [
+        "How many waste items were classified today?",
+        "What is the most common waste type?",
+        "Show me plastic count this week",
+        "What is the model's average accuracy?",
+        "How much e-waste has been detected?",
+        "How many recyclable items are there?",
+        "Compare plastic vs metal",
+        "What was the last classification?",
+        "Show waste trend this week",
+        "How many items were uploaded?"
+    ]
+    if stats and stats.most_common_category:
+        suggestions.insert(0, f"How many {stats.most_common_category} items are there?")
+    return jsonify({'suggestions': suggestions[:8]}), 200
+
+
+@app.route('/api/analytics/breakdown', methods=['GET'])
+def analytics_breakdown():
+    """Category-level breakdown for charts"""
+    try:
+        from sqlalchemy import func
+        stats = Statistics.query.first()
+        total = stats.total_predictions if stats else 0
+        
+        rows = db.session.query(
+            Prediction.category,
+            func.count(Prediction.category).label('count')
+        ).group_by(Prediction.category).order_by(db.desc('count')).all()
+        
+        breakdown = [
+            {
+                'category': r[0],
+                'count': r[1],
+                'percentage': round(r[1] / total * 100, 1) if total > 0 else 0
+            }
+            for r in rows
+        ]
+        return jsonify({'breakdown': breakdown, 'total': total}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/storage-info', methods=['GET'])
 def get_storage_info():
@@ -461,20 +735,25 @@ def update_statistics(category, confidence):
 def not_found(error):
     return jsonify({'error': 'Endpoint not found'}), 404
 
-@app.errorhandler(500)
-def internal_error(error):
-    db.session.rollback()
-    return jsonify({'error': 'Internal server error'}), 500
+# @app.errorhandler(500)
+# def internal_error(error):
+#     db.session.rollback()
+#     return jsonify({'error': 'Internal server error'}), 500
 
 # =================== CORS SETUP ===================
 
 from flask_cors import CORS
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # =================== DATABASE INITIALIZATION ===================
 
 with app.app_context():
     db.create_all()
+
+# =================== ASGI WRAPPER (for uvicorn) ===================
+# Flask is WSGI; wrap with asgiref so `uvicorn app:asgi_app --reload` works.
+from asgiref.wsgi import WsgiToAsgi
+asgi_app = WsgiToAsgi(app)
 
 if __name__ == '__main__':
     print("✅ Starting EcoVision AI Flask Server...")

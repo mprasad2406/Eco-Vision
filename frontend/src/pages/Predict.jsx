@@ -169,7 +169,7 @@ export default function Predict() {
           </div>
         )}
 
-        {(preview || loading || error) && !prediction && (
+        {(preview || loading || error) && (
           <div className="preview-view">
             {error && <div className="error-badge">❌ {error}</div>}
             {preview && (
@@ -201,17 +201,17 @@ export default function Predict() {
             <div className="result-main">
               <div className="result-category-shell">
                 <span className="result-label">Identified Material</span>
-                <h2 className="result-category">{prediction.primary_class}</h2>
+                <h2 className="result-category">{prediction.prediction}</h2>
               </div>
               <div className="confidence-section">
                 <div className="confidence-header">
                   <span>Confidence Score</span>
-                  <span>{(prediction.confidence * 100).toFixed(1)}%</span>
+                  <span>{Number(prediction.confidence).toFixed(1)}%</span>
                 </div>
                 <div className="confidence-track">
                   <div 
                     className="confidence-fill" 
-                    style={{ width: `${prediction.confidence * 100}%` }}
+                    style={{ width: `${prediction.confidence}%` }}
                   />
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function Predict() {
             <div className="result-details">
               <div className="tips-box">
                 <h3>♻️ Disposal Guide</h3>
-                <p>{getDisposalTips(prediction.primary_class)}</p>
+                <p>{getDisposalTips(prediction.prediction)}</p>
               </div>
               <div className="top-preds">
                 <h3>Alternative Probabilities</h3>
@@ -228,7 +228,11 @@ export default function Predict() {
                   {prediction.top_predictions.slice(0, 3).map((pred, i) => (
                     <div key={i} className="pred-item">
                       <span className="pred-name">{pred.class}</span>
-                      <span className="pred-val">{(pred.confidence * 100).toFixed(0)}%</span>
+                      <span className="pred-val">
+                        {pred.confidence > 1
+                          ? `${pred.confidence.toFixed(0)}%`
+                          : `${(pred.confidence * 100).toFixed(0)}%`}
+                      </span>
                     </div>
                   ))}
                 </div>

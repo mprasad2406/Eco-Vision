@@ -1,6 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { speechService } from "../utils/speechService";
+import realTimeSensor from "../assets/homepageimgs/Real-time Material Sensor.jpg";
+import analyticsDashboard from "../assets/homepageimgs/Analytics Dashboard Visualization.jpg";
+import mobileApp from "../assets/homepageimgs/Mobile App in Hand.jpg";
+import smartFleet from "../assets/homepageimgs/Smart Fleet Management.jpg";
 
 const Home = () => {
   const handleSpeak = () => {
@@ -65,13 +69,14 @@ const Home = () => {
         <h2 className="section-title">Waste Segregation in Action</h2>
         <div className="showcase-grid">
           {[
-            { img: "https://images.unsplash.com/photo-1550009158-9ebf69173e03", title: "E-Waste", tag: "Hazardous" },
-            { img: "https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2", title: "Organic", tag: "Compostable" },
-            { img: "https://images.unsplash.com/photo-1495480174669-2da744453d70", title: "Plastics", tag: "Recyclable" }
+            { img: realTimeSensor, title: "Real-time Material Sensor", tag: "Detection" },
+            { img: analyticsDashboard, title: "Analytics Dashboard", tag: "Insights" },
+            { img: mobileApp, title: "Mobile App", tag: "Access" },
+            { img: smartFleet, title: "Smart Fleet Management", tag: "Logistics" }
           ].map((item, i) => (
             <div key={i} className="showcase-card premium-card">
               <div className="image-wrapper">
-                <img src={`${item.img}?auto=format&fit=crop&q=80&w=600`} alt={item.title} />
+                <img src={item.img} alt={item.title} />
                 <span className="tag">{item.tag}</span>
               </div>
               <div className="showcase-info">

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { speechService } from "../utils/speechService";
 
 const STATS_DATA = {
@@ -24,6 +25,7 @@ const STATS_DATA = {
 
 export default function Stats() {
   const [activeTab, setActiveTab] = useState('distribution');
+  const navigate = useNavigate();
 
   const handleSpeakStats = () => {
     const summary = `System Performance Overview: Total predictions processed: ${STATS_DATA.totalPredictions}. Core accuracy: ${STATS_DATA.accuracy}%. Primary material detected: Plastic. Model health metrics are stable with an F1 score of ${STATS_DATA.modelPerformance.f1Score}%.`;
@@ -143,9 +145,23 @@ export default function Stats() {
         <div className="nlp-header">
           <div className="nlp-label">NLP ELECTIVE COMPONENT</div>
           <h2>Smart Query Interface</h2>
-          <p>Ask natural language questions about your waste metrics and system performance.</p>
+          <p>Ask natural language questions about your waste metrics and system performance in plain English — powered by a multi-intent NLP engine with 12+ intent types.</p>
         </div>
-        <WasteQuery />
+        <div className="nlp-preview-grid">
+          {[
+            "How many items today?",
+            "Most common waste type?",
+            "Compare plastic vs metal",
+            "Model accuracy this week?"
+          ].map((q) => (
+            <div key={q} className="nlp-preview-chip">
+              <span>💬</span> {q}
+            </div>
+          ))}
+        </div>
+        <button className="nlp-goto-btn" onClick={() => navigate('/nlp')}>
+          🧠 Open NLP Query Engine →
+        </button>
       </section>
 
       <style>{`
@@ -305,108 +321,41 @@ export default function Stats() {
         .nlp-header h2 { font-size: 2rem; margin-bottom: 0.5rem; }
         .nlp-header p { color: var(--text-muted); }
 
-        .query-box {
-          display: flex;
+        .nlp-preview-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 1rem;
           margin-bottom: 2rem;
         }
-        .query-box input {
-          flex: 1;
-          padding: 1.25rem 1.5rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          outline: none;
-          font-size: 1rem;
-          transition: 0.3s;
+        .nlp-preview-chip {
+          background: rgba(16,185,129,.07);
+          border: 1px solid rgba(16,185,129,.2);
+          border-radius: 14px;
+          padding: 1rem 1.25rem;
+          font-size: .9rem;
+          font-weight: 600;
+          color: var(--text-main);
+          display: flex;
+          align-items: center;
+          gap: .6rem;
         }
-        .query-box input:focus {
-          border-color: var(--primary);
-          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
-        }
-        .query-btn {
-          background: var(--primary);
+        .nlp-goto-btn {
+          background: linear-gradient(135deg, var(--primary), var(--secondary));
           color: white;
           border: none;
-          padding: 0 2.5rem;
+          padding: 1rem 2.5rem;
           border-radius: 16px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: 0.3s;
-        }
-        .query-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .query-response {
-          background: white;
-          padding: 2rem;
-          border-radius: 20px;
-          border: 1px solid #e2e8f0;
-          animation: fadeIn 0.4s ease;
-        }
-        .response-label {
-          display: block;
-          font-size: 0.8rem;
           font-weight: 800;
-          color: var(--primary);
-          margin-bottom: 0.75rem;
-          text-transform: uppercase;
+          font-size: 1rem;
+          font-family: inherit;
+          cursor: pointer;
+          transition: .3s;
         }
-        .response-text {
-          font-size: 1.25rem;
-          line-height: 1.6;
-          color: var(--text-main);
-          font-weight: 500;
+        .nlp-goto-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(16,185,129,.35);
         }
       `}</style>
     </div>
   );
-}
-
-function WasteQuery() {
-  const [query, setQuery] = useState("");
-  const [response, setResponse] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleQuery = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
-    setLoading(true);
-    try {
-      const res = await fetch("http://localhost:5000/api/nlp/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query })
-      });
-      const data = await res.json();
-      setResponse(data.answer);
-    } catch (error) {
-      setResponse("I'm having trouble connecting to the analytics engine right now.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="waste-query-container">
-      <form onSubmit={handleQuery} className="query-box">
-        <input 
-          type="text" 
-          placeholder="e.g. 'How much plastic waste was collected?' or 'Current accuracy?'"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button type="submit" className="query-btn" disabled={loading}>
-          {loading ? "Analyzing..." : "Ask AI"}
-        </button>
-      </form>
-      
-      {response && (
-        <div className="query-response">
-          <span className="response-label">System Response</span>
-          <p className="response-text">{response}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
+}

@@ -8,6 +8,7 @@ import Categories from "./pages/Categories";
 import Stats from "./pages/Stats";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import WasteQuery from "./pages/WasteQuery";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
                     <Route path="/predict" element={<Predict />} />
                     <Route path="/categories" element={<Categories />} />
                     <Route path="/stats" element={<Stats />} />
+                    <Route path="/nlp" element={<WasteQuery />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/contact" element={<Contact />} />
                   </Routes>
