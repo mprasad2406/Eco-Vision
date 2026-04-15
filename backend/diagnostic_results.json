@@ -1,0 +1,161 @@
+{
+  "total_test_images": 7,
+  "correct_predictions": 0,
+  "accuracy_percentage": 0.0,
+  "test_results": {
+    "battery": {
+      "predicted": "cardboard",
+      "confidence": 0.9571805596351624,
+      "correct": false,
+      "top_3": [
+        [
+          "cardboard",
+          0.9571805596351624
+        ],
+        [
+          "plastic",
+          0.016859546303749084
+        ],
+        [
+          "trash",
+          0.009596104733645916
+        ]
+      ]
+    },
+    "glass": {
+      "predicted": "cardboard",
+      "confidence": 0.9665195941925049,
+      "correct": false,
+      "top_3": [
+        [
+          "cardboard",
+          0.9665195941925049
+        ],
+        [
+          "metal",
+          0.010417740792036057
+        ],
+        [
+          "trash",
+          0.009897042065858841
+        ]
+      ]
+    },
+    "metal": {
+      "predicted": "cardboard",
+      "confidence": 0.9835013747215271,
+      "correct": false,
+      "top_3": [
+        [
+          "cardboard",
+          0.9835013747215271
+        ],
+        [
+          "metal",
+          0.0061924150213599205
+        ],
+        [
+          "trash",
+          0.003936018329113722
+        ]
+      ]
+    },
+    "organic": {
+      "predicted": "cardboard",
+      "confidence": 0.9483484625816345,
+      "correct": false,
+      "top_3": [
+        [
+          "cardboard",
+          0.9483484625816345
+        ],
+        [
+          "metal",
+          0.03128938004374504
+        ],
+        [
+          "plastic",
+          0.010618993081152439
+        ]
+      ]
+    },
+    "paper": {
+      "predicted": "cardboard",
+      "confidence": 0.9943155646324158,
+      "correct": false,
+      "top_3": [
+        [
+          "cardboard",
+          0.9943155646324158
+        ],
+        [
+          "plastic",
+          0.002240116475149989
+        ],
+        [
+          "paper",
+          0.0014237107243388891
+        ]
+      ]
+    },
+    "pcb": {
+      "predicted": "cardboard",
+      "confidence": 0.9725372195243835,
+      "correct": false,
+      "top_3": [
+        [
+          "cardboard",
+          0.9725372195243835
+        ],
+        [
+          "trash",
+          0.01712435856461525
+        ],
+        [
+          "plastic",
+          0.005420816130936146
+        ]
+      ]
+    },
+    "plastic": {
+      "predicted": "cardboard",
+      "confidence": 0.9791586399078369,
+      "correct": false,
+      "top_3": [
+        [
+          "cardboard",
+          0.9791586399078369
+        ],
+        [
+          "paper",
+          0.006274878978729248
+        ],
+        [
+          "plastic",
+          0.006166997831314802
+        ]
+      ]
+    }
+  },
+  "model_shape": "(None, 224, 224, 3)",
+  "num_classes": 17,
+  "class_names": [
+    "Battery",
+    "Keyboard",
+    "Microwave",
+    "Mobile",
+    "Mouse",
+    "PCB",
+    "Player",
+    "Printer",
+    "Television",
+    "Washing Machine",
+    "cardboard",
+    "glass",
+    "metal",
+    "organic",
+    "paper",
+    "plastic",
+    "trash"
+  ]
+}

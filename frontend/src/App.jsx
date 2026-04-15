@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
@@ -14,6 +14,13 @@ import RecyclingTips from "./pages/RecyclingTips";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Clear cached data on app startup
+  useEffect(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    console.log("✅ Cache cleared on startup");
+  }, []);
 
   const handleMenuToggle = () => {
     setIsSidebarOpen((prev) => !prev);
@@ -71,16 +78,28 @@ function App() {
           --bg: #f8fafc;
           --text-main: #0f172a;
           --text-muted: #64748b;
+          --error-dark: #b91c1c;
+          --error-light: #dc2626;
+          --success-dark: #047857;
+          --warning-dark: #b45309;
           --glass-bg: rgba(255, 255, 255, 0.7);
           --glass-border: rgba(255, 255, 255, 0.125);
+          --input-bg: #ffffff;
+          --card-bg: rgba(255, 255, 255, 0.7);
         }
 
         [data-theme="dark"] {
           --bg: #0b1220;
           --text-main: #e2e8f0;
           --text-muted: #94a3b8;
+          --error-dark: #fca5a5;
+          --error-light: #fecaca;
+          --success-dark: #6ee7b7;
+          --warning-dark: #fcd34d;
           --glass-bg: rgba(15, 23, 42, 0.7);
           --glass-border: rgba(255, 255, 255, 0.08);
+          --input-bg: rgba(30, 41, 59, 0.9);
+          --card-bg: rgba(15, 23, 42, 0.6);
         }
 
         body {

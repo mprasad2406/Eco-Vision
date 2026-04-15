@@ -12,6 +12,7 @@ export default function Predict() {
   const [prediction, setPrediction] = useState(null);
   const [error, setError] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
   const [quality, setQuality] = useState(null);
   const [overrideQuality, setOverrideQuality] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -125,14 +126,21 @@ export default function Predict() {
 
   const handleStartCamera = async () => {
     try {
+      setCameraError(null);
+      setError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
       videoRef.current.srcObject = stream;
       setCameraActive(true);
-      setError(null);
     } catch (err) {
-      setError("Camera access denied. Please check permissions.");
+      setCameraError(
+        err.name === "NotAllowedError"
+          ? "Camera permission denied. Please enable camera access in your browser settings."
+          : err.name === "NotFoundError"
+          ? "No camera found on this device."
+          : "Unable to access camera. Please check permissions."
+      );
     }
   };
 
@@ -169,6 +177,7 @@ export default function Predict() {
     setPreview(null);
     setPrediction(null);
     setError(null);
+    setCameraError(null);
     setQuality(null);
     setOverrideQuality(false);
     setFeedbackSent(false);
@@ -423,7 +432,7 @@ export default function Predict() {
       </div>
 
       <div className="predict-main-card premium-card">
-        {!preview && !loading && !prediction && !cameraActive && (
+        {!preview && !loading && !prediction && !cameraActive && !cameraError && (
           <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
             <div className="upload-icon-wrapper">
               <span className="icon">▲</span>
@@ -448,12 +457,36 @@ export default function Predict() {
           </div>
         )}
 
+        {cameraError && (
+          <div className="camera-error-view">
+            <div className="error-card">
+              <div className="error-icon">📷</div>
+              <h3>Camera Access Issue</h3>
+              <p className="error-message">{cameraError}</p>
+              <div className="error-actions">
+                <button 
+                  onClick={handleStartCamera} 
+                  className="predict-btn primary"
+                >
+                  🔄 Retry Camera
+                </button>
+                <button 
+                  onClick={() => setCameraError(null)} 
+                  className="predict-btn secondary"
+                >
+                  📂 Upload File Instead
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {cameraActive && (
           <div className="camera-view">
             <video ref={videoRef} autoPlay playsInline className="video-stream" />
             <canvas ref={canvasRef} style={{ display: "none" }} width={224} height={224} />
             <div className="camera-controls">
-              <button onClick={handleCapturePhoto} className="predict-btn primary">📸 Capture</button>
+              <button onClick={handleCapturePhoto} className="predict-btn primary large">📸 Capture Photo</button>
               <button onClick={handleStopCamera} className="predict-btn danger">✕ Cancel</button>
             </div>
           </div>
@@ -540,7 +573,48 @@ export default function Predict() {
                   />
                 </div>
               </div>
+
+              {prediction.warning && (
+                <div className="warning-banner">
+                  <span className="warning-icon">⚠️</span>
+                  <span className="warning-text">{prediction.warning_message}</span>
+                </div>
+              )}
             </div>
+
+            {prediction.warning && (
+              <div className="report-error-section premium-card">
+                <h3>🚨 Report This Prediction</h3>
+                <p style={{ color: '#ff6b6b', fontWeight: 'bold', marginBottom: '12px' }}>
+                  This prediction has LOW confidence. Please help us improve by reporting the correct label.
+                </p>
+                <div className="feedback-row">
+                  <select
+                    value={feedbackLabel}
+                    onChange={(e) => setFeedbackLabel(e.target.value)}
+                  >
+                    <option value="">🔴 Select CORRECT label</option>
+                    {categories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Optional note (e.g., looks like plastic)"
+                    value={feedbackNote}
+                    onChange={(e) => setFeedbackNote(e.target.value)}
+                  />
+                  <button
+                    className="predict-btn primary"
+                    onClick={handleFeedbackSubmit}
+                    disabled={!feedbackLabel || feedbackSent}
+                    style={{ backgroundColor: '#ff6b6b', fontSize: '14px', fontWeight: 'bold' }}
+                  >
+                    {feedbackSent ? "✅ Error Reported!" : "🔴 Report Error"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="result-details">
               <div className="tips-box">
@@ -757,7 +831,10 @@ export default function Predict() {
         }
         .model-chip.warn {
           background: rgba(248, 113, 113, 0.18);
-          color: #b91c1c;
+          color: var(--error-dark);
+        }
+        [data-theme="dark"] .model-chip.warn {
+          color: var(--error-dark);
         }
 
         .predict-main-card {
@@ -835,18 +912,86 @@ export default function Predict() {
           transform: translateY(-2px);
           box-shadow: 0 15px 30px rgba(0,0,0,0.1);
         }
+        .predict-btn.large {
+          padding: 1rem 2.5rem;
+          font-size: 1.1rem;
+          width: 100%;
+          max-width: 300px;
+        }
 
         .camera-view {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 1.5rem;
+          gap: 2rem;
+          padding: 2rem 0;
+        }
+        .camera-controls {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          flex-wrap: wrap;
+          width: 100%;
+          padding: 1.5rem;
+          background: rgba(16, 185, 129, 0.05);
+          border-radius: 16px;
+          border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+        .camera-controls .predict-btn {
+          min-width: 150px;
+        }
+        .camera-controls .predict-btn.primary {
+          flex: 1;
+          max-width: 300px;
         }
         .video-stream {
           width: 100%;
           max-width: 500px;
           border-radius: 20px;
           box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .camera-error-view {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 400px;
+          padding: 2rem;
+        }
+        .error-card {
+          text-align: center;
+          padding: 2.5rem 2rem;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(251, 146, 60, 0.08));
+          border: 2px solid rgba(239, 68, 68, 0.25);
+          border-radius: 20px;
+          max-width: 500px;
+          animation: slideInDown 0.5s ease-out;
+        }
+        .error-icon {
+          font-size: 3.5rem;
+          margin-bottom: 1rem;
+          display: block;
+        }
+        .error-card h3 {
+          color: #dc2626;
+          font-size: 1.5rem;
+          margin-bottom: 0.8rem;
+        }
+        .error-message {
+          color: #991b1b;
+          font-weight: 500;
+          line-height: 1.6;
+          margin-bottom: 1.5rem;
+          font-size: 0.95rem;
+        }
+        .error-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 0.8rem;
+        }
+        .error-actions .predict-btn {
+          width: 100%;
         }
 
         .preview-view {
@@ -876,12 +1021,18 @@ export default function Predict() {
           border-color: rgba(239, 68, 68, 0.25);
         }
         .quality-warning {
-          color: #b91c1c;
+          color: var(--error-dark);
           font-weight: 600;
         }
+        [data-theme="dark"] .quality-warning {
+          color: var(--error-dark);
+        }
         .quality-good {
-          color: #047857;
+          color: var(--success-dark);
           font-weight: 600;
+        }
+        [data-theme="dark"] .quality-good {
+          color: var(--success-dark);
         }
         .quality-actions {
           display: flex;
@@ -931,7 +1082,7 @@ export default function Predict() {
         }
         .confidence-track {
           height: 12px;
-          background: #e2e8f0;
+          background: var(--glass-border);
           border-radius: 100px;
           overflow: hidden;
         }
@@ -1037,7 +1188,14 @@ export default function Predict() {
           border-radius: 12px;
           border: 1px solid rgba(0,0,0,0.1);
           font-family: inherit;
-          background: rgba(255,255,255,0.7);
+          background: var(--input-bg);
+          color: var(--text-main);
+        }
+        [data-theme="dark"] .feedback-row select,
+        [data-theme="dark"] .feedback-row input {
+          background: var(--input-bg);
+          border-color: rgba(255,255,255,0.1);
+          color: var(--text-main);
         }
 
         .batch-section {
@@ -1069,7 +1227,7 @@ export default function Predict() {
           gap: 1rem;
           padding: 0.6rem 0.8rem;
           border-radius: 12px;
-          background: rgba(255,255,255,0.6);
+          background: var(--card-bg);
         }
         .batch-header-row {
           font-weight: 700;
@@ -1116,11 +1274,66 @@ export default function Predict() {
           to { opacity: 1; transform: translateY(0); }
         }
 
+        .warning-banner {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1.2rem 1.5rem;
+          background: rgba(239, 68, 68, 0.08);
+          border: 2px solid rgba(239, 68, 68, 0.4);
+          border-radius: 14px;
+          margin-top: 1.5rem;
+          animation: slideInDown 0.5s ease-out;
+        }
+        .warning-icon {
+          font-size: 1.5rem;
+          flex-shrink: 0;
+        }
+        .warning-text {
+          color: var(--error-dark);
+          font-weight: 600;
+          line-height: 1.4;
+        }
+        [data-theme="dark"] .warning-text {
+          color: var(--error-dark);
+        }
+
+        .report-error-section {
+          padding: 2rem !important;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(251, 146, 60, 0.08)) !important;
+          border: 2px solid rgba(239, 68, 68, 0.25) !important;
+          margin: 2rem 0 !important;
+          animation: slideInDown 0.5s ease-out;
+        }
+        .report-error-section h3 {
+          color: var(--error-light) !important;
+          font-weight: 800 !important;
+          margin-bottom: 1rem !important;
+          font-size: 1.3rem !important;
+        }
+        [data-theme="dark"] .report-error-section h3 {
+          color: var(--error-light) !important;
+        }
+        .report-error-section .feedback-row {
+          grid-template-columns: 200px 1fr 160px;
+        }
+
+        @keyframes slideInDown {
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInLeft {
+          from { width: 0; }
+          to { width: 100%; }
+        }
+
         @media (max-width: 768px) {
           .predict-main-card { padding: 1.5rem; }
           .result-details { grid-template-columns: 1fr; }
           .result-category { font-size: 2rem; }
           .feedback-row { grid-template-columns: 1fr; }
+          .report-error-section .feedback-row { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

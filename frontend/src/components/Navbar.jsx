@@ -169,11 +169,11 @@ export default function Navbar({ onMenuToggle }) {
 
         .premium-navbar.scrolled {
           padding: 0.75rem 2rem;
-          background: rgba(255, 255, 255, 0.75);
+          background: var(--glass-bg);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           box-shadow: 0 4px 30px rgba(0, 0, 0, 0.04);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+          border-bottom: 1px solid var(--glass-border);
         }
 
         .nav-container {
@@ -204,10 +204,10 @@ export default function Navbar({ onMenuToggle }) {
         .nav-menu {
           display: flex;
           gap: 0.5rem;
-          background: rgba(255,255,255,0.5);
+          background: var(--glass-bg);
           padding: 0.4rem;
           border-radius: 100px;
-          border: 1px solid rgba(0,0,0,0.03);
+          border: 1px solid var(--glass-border);
           backdrop-filter: blur(10px);
         }
 
@@ -230,9 +230,14 @@ export default function Navbar({ onMenuToggle }) {
         }
 
         .nav-link.active {
-          background: white;
+          background: var(--glass-bg);
           color: var(--primary);
           box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        [data-theme="dark"] .nav-link.active {
+          background: rgba(255, 255, 255, 0.1);
+          color: var(--primary);
         }
 
         .nav-actions {
@@ -245,13 +250,20 @@ export default function Navbar({ onMenuToggle }) {
           height: 42px;
           border-radius: 12px;
           border: 1px solid rgba(0,0,0,0.05);
-          background: white;
+          background: var(--glass-bg);
+          color: var(--text-main);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 1.1rem;
           transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] .action-btn {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.1);
+          color: var(--text-main);
         }
 
         .action-btn.theme-toggle {
@@ -298,29 +310,29 @@ export default function Navbar({ onMenuToggle }) {
         }
 
         [data-theme="dark"] .nav-menu {
-          background: rgba(15, 23, 42, 0.6);
+          background: rgba(255, 255, 255, 0.08);
           border-color: rgba(255, 255, 255, 0.08);
         }
 
         [data-theme="dark"] .nav-link {
-          color: rgba(226, 232, 240, 0.8);
+          color: var(--text-muted);
         }
 
         [data-theme="dark"] .nav-link:hover {
-          color: #e2e8f0;
+          color: var(--text-main);
           background: rgba(255, 255, 255, 0.08);
         }
 
         [data-theme="dark"] .nav-link.active {
-          background: rgba(15, 23, 42, 0.9);
-          color: #93c5fd;
+          background: rgba(255, 255, 255, 0.12);
+          color: var(--primary);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
         }
 
         [data-theme="dark"] .action-btn {
-          background: rgba(15, 23, 42, 0.9);
+          background: rgba(255, 255, 255, 0.08);
           border-color: rgba(255, 255, 255, 0.1);
-          color: #e2e8f0;
+          color: var(--text-main);
         }
       `}</style>
     </nav>

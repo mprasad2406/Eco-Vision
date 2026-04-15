@@ -65,7 +65,7 @@ export default function Sidebar({ isOpen, onClose }) {
           top: 0;
           height: 100vh;
           width: 280px;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          background: var(--bg);
           box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
           z-index: 1001;
           transform: translateX(-100%);
@@ -73,6 +73,10 @@ export default function Sidebar({ isOpen, onClose }) {
           overflow-y: auto;
           display: flex;
           flex-direction: column;
+        }
+
+        [data-theme="dark"] .mobile-sidebar {
+          box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
         }
 
         .mobile-sidebar.open {

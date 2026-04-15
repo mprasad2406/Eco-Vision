@@ -3,12 +3,27 @@ EcoVision AI Backend - Flask Server
 Main application file with SQLite database integration
 """
 
-# Suppress TensorFlow warnings
+# ========== SUPPRESS ALL WARNINGS (MUST BE FIRST) ==========
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['ABSL_MIN_LOG_LEVEL'] = '0'  # Suppress absl logging
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
+import sys
 import warnings
 warnings.filterwarnings('ignore')
+warnings.simplefilter('ignore')
+
+# Suppress logging EARLY
+import logging
+logging.basicConfig(level=logging.CRITICAL)
+
+# Disable all loggers except critical
+for logger_name in ['tensorflow', 'tensorflow.python', 'absl', 'flask', 'werkzeug', 'urllib3']:
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.CRITICAL)
+    logger.disabled = True
 
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -22,8 +37,9 @@ from pathlib import Path
 import re
 from sqlalchemy.exc import OperationalError
 
-# Suppress TensorFlow verbosity
-tf.get_logger().setLevel('ERROR')
+# Additional TensorFlow suppression
+tf.get_logger().setLevel(logging.CRITICAL)
+tf.autograph.set_verbosity(0)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -401,14 +417,25 @@ def predict():
         
         db.session.commit()
         
-        return jsonify({
+        # Check confidence threshold
+        confidence_pct = prediction_result['confidence'] * 100
+        response_data = {
             'success': True,
             'prediction': prediction_result['primary_class'],
-            'confidence': round(prediction_result['confidence'] * 100, 2),
+            'confidence': round(confidence_pct, 2),
             'top_predictions': prediction_result['top_predictions'],
             'image_id': uploaded_image.id,
             'prediction_id': prediction.id
-        }), 200
+        }
+        
+        # Add warning if confidence is below 70%
+        if confidence_pct < 70:
+            response_data['warning'] = True
+            response_data['warning_message'] = f"⚠️ Low confidence ({confidence_pct:.1f}%). Please verify this result or submit correction feedback."
+        else:
+            response_data['warning'] = False
+        
+        return jsonify(response_data), 200
         
     except Exception as e:
         db.session.rollback()
@@ -996,4 +1023,9 @@ if __name__ == '__main__':
     print("✅ Starting EcoVision AI Flask Server...")
     print("   Visit: http://localhost:5000")
     print("   Press Ctrl+C to stop\n")
+    
+    # Suppress werkzeug logging
+    logging.getLogger('werkzeug').setLevel(logging.ERROR)
+    logging.getLogger('werkzeug').disabled = True
+    
     app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=True)
