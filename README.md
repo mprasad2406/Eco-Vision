@@ -1,53 +1,90 @@
-# � EcoVision AI - Waste Classification System
+# 🌿 EcoVision AI - Intelligent Waste Classification System
 
 [![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev)
 [![Flask](https://img.shields.io/badge/Flask-3.0-green?logo=flask)](https://flask.palletsprojects.com)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.21-orange?logo=tensorflow)](https://tensorflow.org)
 [![SQLite](https://img.shields.io/badge/SQLite-DB-lightblue?logo=sqlite)](https://sqlite.org)
+[![IoT Ready](https://img.shields.io/badge/IoT-Ready-purple?logo=iot)](./IoT_CONNECTION.txt)
 
-**Professional AI-powered waste classification with real-time image analysis, database persistence, and modern UI/UX**
+**Smart Waste Management powered by Deep Learning & Real-time Analytics**
 
-A complete waste management solution using MobileNetV2 deep learning to classify waste into 17 categories. Features include real-time predictions, image upload & camera capture, prediction history, analytics dashboard, and a professional responsive interface.
+A full-stack AI application for automated waste classification, recycling guidance, and environmental impact tracking with **IoT support**. Features include real-time predictions, image upload & camera capture, prediction history, analytics dashboard, NLP query interface, and professional responsive UI.
 
 ---
 
-## ✅ Quick Start (2 minutes)
+## 🚀 Quick Start (3 minutes)
 
-### 1. Backend Setup
+### Prerequisites
+- Python 3.9+
+- Node.js 18+
+- 4GB RAM minimum
+
+### 1️⃣ Backend Setup
 ```bash
 cd backend
 pip install -r requirements.txt
-python create_model.py              # First time only (~1-2 min)
-python app.py                       # Starts on http://localhost:5000
+python app.py  # Starts on http://localhost:5000
 ```
 
-### 2. Frontend Setup (New Terminal)
+### 2️⃣ Frontend Setup (New Terminal)
 ```bash
 cd frontend
 npm install
-npm run dev                         # Starts on http://localhost:5173
+npm run dev  # Starts on http://localhost:5173
 ```
 
-### 3. Open in Browser
+### 3️⃣ Open in Browser
 ```
 http://localhost:5173
 ```
 
-✅ **Done!** System is ready to use.
+### ✅ Verify Setup
+```bash
+curl http://localhost:5000/api/health
+```
+Expected: `{"status": "healthy", "model": {"loaded": true, "class_count": 17}}`
 
 ---
 
-## 🎯 Key Features
+## ✨ Key Features
 
-### 🖼️ **Image Processing**
-- Upload waste images (drag & drop supported)
-- Live camera capture & photo
-- Real-time classification with confidence scores
-- Support for PNG, JPG, WebP formats
+### 🤖 AI & Machine Learning
+- **Real-time Waste Classification** using TensorFlow MobileNetV2
+- **17 Waste Categories** detected (plastic, glass, metal, paper, organic, e-waste, etc.)
+- **High Accuracy** with confidence scoring and top-3 predictions
+- **Model Status Indicator** on UI showing load status
 
-### 🤖 **AI/ML**
-- MobileNetV2 transfer learning architecture
-- 17 waste categories classification
+### 📊 Analytics & Insights
+- **Real-time Dashboard** with live statistics
+- **Prediction History** with image tracking
+- **Category Breakdown** charts and trends
+- **Daily/Weekly Reports** with comparison analysis
+- **User Feedback Loop** for model improvement
+
+### 🗣️ Natural Language Interface
+- **Smart NLP Query System** for waste questions
+- **17+ Query Intents** (recycling tips, trends, stats, comparisons)
+- **Context-aware Responses** with suggestions
+
+### ♻️ Sustainability Features
+- **Recycling Guidance** per waste type
+- **Disposal Instructions** with eco-friendly tips
+- **E-waste Management** tracking
+- **Environmental Impact** metrics
+
+### 🔌 IoT Ready
+- **Multi-source Support** (camera, upload, IoT devices)
+- **Bulk Processing** via CSV
+- **REST API** for device integration
+- **Webhook Support** for notifications
+- **See IoT_CONNECTION.txt** for detailed setup
+
+### 📱 Frontend
+- **Light/Dark Theme** responsive design
+- **Web Speech API** voice commands
+- **Offline Queue** with localStorage
+- **Mobile-Optimized** UI
+- **Drag & Drop** image upload
 - 224x224 RGB image input
 - Top-3 predictions with confidence scores
 - ~100-200ms inference time per image

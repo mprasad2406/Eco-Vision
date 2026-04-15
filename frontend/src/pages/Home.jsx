@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { speechService } from "../utils/speechService";
+import { apiService } from "../services/apiService";
 import realTimeSensor from "../assets/homepageimgs/Real-time Material Sensor.jpg";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
@@ -10,6 +11,8 @@ const Home = () => {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState(null);
+  const [modelInfo, setModelInfo] = useState(null);
+  const [modelError, setModelError] = useState(null);
   const handleSpeak = () => {
     speechService.speak("Welcome to Eco-Vision. This is your dashboard for intelligent waste classification. Navigate to Predict to upload waste images, view all categories, check statistics, or learn more about our project.");
   };
@@ -34,6 +37,19 @@ const Home = () => {
       }
     };
     fetchHistory();
+  }, []);
+
+  useEffect(() => {
+    const fetchModelInfo = async () => {
+      try {
+        const info = await apiService.getModelInfo();
+        setModelInfo(info);
+        setModelError(null);
+      } catch {
+        setModelError("Model status unavailable.");
+      }
+    };
+    fetchModelInfo();
   }, []);
 
   const navCards = [
@@ -153,6 +169,32 @@ const Home = () => {
                 </span>
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      <section className="model-status premium-card">
+        <div className="model-status-header">
+          <h2>Model Status</h2>
+          <span className={`model-pill ${modelInfo?.loaded ? "ok" : "warn"}`}>
+            {modelInfo?.loaded ? "Loaded" : "Not Loaded"}
+          </span>
+        </div>
+        {modelError && <p className="history-muted">{modelError}</p>}
+        {!modelError && modelInfo && (
+          <div className="model-details">
+            <div>
+              <span className="detail-label">Classes</span>
+              <span className="detail-value">{modelInfo.class_count}</span>
+            </div>
+            <div>
+              <span className="detail-label">Model Path</span>
+              <span className="detail-value">{modelInfo.model_path || "-"}</span>
+            </div>
+            <div>
+              <span className="detail-label">Class Names</span>
+              <span className="detail-value">{modelInfo.class_names_path || "-"}</span>
+            </div>
           </div>
         )}
       </section>
@@ -468,6 +510,49 @@ const Home = () => {
         }
         .history-muted {
           color: var(--text-muted);
+        }
+
+        .model-status {
+          padding: 2rem;
+          margin-bottom: 3rem;
+        }
+        .model-status-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          flex-wrap: wrap;
+          margin-bottom: 1rem;
+        }
+        .model-pill {
+          padding: 0.35rem 0.9rem;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.85rem;
+          background: rgba(148, 163, 184, 0.2);
+          color: var(--text-main);
+        }
+        .model-pill.ok {
+          background: rgba(16, 185, 129, 0.15);
+          color: var(--primary-dark);
+        }
+        .model-pill.warn {
+          background: rgba(248, 113, 113, 0.15);
+          color: #b91c1c;
+        }
+        .model-details {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 1rem;
+        }
+        .detail-label {
+          display: block;
+          font-size: 0.85rem;
+          color: var(--text-muted);
+        }
+        .detail-value {
+          font-weight: 600;
+          word-break: break-word;
         }
 
         .home-snapshot {

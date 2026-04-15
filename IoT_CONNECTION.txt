@@ -1,0 +1,607 @@
+═══════════════════════════════════════════════════════════════════════════════
+  🔌 IoT INTEGRATION GUIDE - EcoVision AI Waste Classification System
+═══════════════════════════════════════════════════════════════════════════════
+
+This document explains how to connect IoT devices (cameras, sensors, robots) to 
+the EcoVision AI waste classification system.
+
+═══════════════════════════════════════════════════════════════════════════════
+1. DEPLOYMENT REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+For IoT devices to communicate with the system, the backend must be accessible
+on the network.
+
+OPTION A: Local Network (Single Building)
+──────────────────────────────────────────
+- Run backend on a computer connected to same WiFi/LAN
+- Get IP address:
+  Windows: ipconfig | findstr "IPv4"
+  Linux/Mac: ifconfig | grep "inet "
+- Example: 192.168.0.101:5000
+
+OPTION B: Cloud Server (Multiple Locations)
+──────────────────────────────────────────────
+- Deploy backend to cloud (AWS, Azure, Heroku, DigitalOcean)
+- Example: https://waste-api.example.com:5000
+
+OPTION C: Docker Container
+─────────────────────────────
+- Create Dockerfile for backend
+- Run with: docker run -p 5000:5000 waste-classifier
+- Deploy to Docker Hub, Kubernetes, etc.
+
+═══════════════════════════════════════════════════════════════════════════════
+2. API ENDPOINT FOR IoT DEVICES
+═══════════════════════════════════════════════════════════════════════════════
+
+Main prediction endpoint:
+
+  POST http://<SERVER>:5000/api/predict
+
+REQUIRED:
+  - image (multipart file) - JPEG/PNG image of waste
+  - source (form data) - Device identifier (e.g., "iot_bin_01", "camera_floor_2")
+
+RESPONSE:
+  {
+    "success": true,
+    "prediction": "plastic",              # Primary classification
+    "confidence": 97.5,                   # Percentage
+    "top_predictions": [
+      {"class": "plastic", "confidence": 0.975},
+      {"class": "paper", "confidence": 0.018},
+      {"class": "cardboard", "confidence": 0.007}
+    ],
+    "image_id": 42,
+    "prediction_id": 128
+  }
+
+═══════════════════════════════════════════════════════════════════════════════
+3. DEVICE IMPLEMENTATION EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+A. PYTHON (Raspberry Pi, Jetson Nano)
+──────────────────────────────────────
+
+import requests
+from pathlib import Path
+
+# Capture image from camera
+import cv2
+cap = cv2.VideoCapture(0)
+ret, frame = cap.read()
+cv2.imwrite('waste.jpg', frame)
+cap.release()
+
+# Send to server
+API_URL = "http://192.168.0.101:5000/api/predict"
+DEVICE_ID = "iot_bin_kitchen_01"
+
+try:
+    with open('waste.jpg', 'rb') as img:
+        files = {'image': img}
+        data = {'source': DEVICE_ID}
+        response = requests.post(API_URL, files=files, data=data)
+        
+    result = response.json()
+    if result['success']:
+        print(f"Waste Type: {result['prediction']}")
+        print(f"Confidence: {result['confidence']}%")
+        
+        # Act based on classification
+        if result['confidence'] > 85:
+            print("High confidence - Update display")
+            # Show on LCD: "PLASTIC - BIN 2"
+        else:
+            print("Low confidence - Manual review needed")
+except Exception as e:
+    print(f"Error: {e}")
+    # Fallback: Queue image for later
+
+
+B. CURL (Bash Script)
+─────────────────────
+
+#!/bin/bash
+
+SERVER="http://192.168.0.101:5000"
+DEVICE_ID="iot_camera_entrance"
+IMAGE_FILE="waste.jpg"
+
+# Capture image (example with fswebcam for Linux)
+fswebcam -r 640x480 $IMAGE_FILE 2>/dev/null
+
+# Send to server
+curl -X POST "$SERVER/api/predict" \
+  -F "image=@$IMAGE_FILE" \
+  -F "source=$DEVICE_ID" \
+  -s | jq '.'
+
+# Output example:
+# {
+#   "success": true,
+#   "prediction": "glass",
+#   "confidence": 94.2,
+#   ...
+# }
+
+
+C. JavaScript/Node.js (IoT Device with Node)
+──────────────────────────────────────────────
+
+const FormData = require('form-data');
+const fs = require('fs');
+const axios = require('axios');
+
+async function classifyWaste(imagePath, deviceId) {
+  const form = new FormData();
+  form.append('image', fs.createReadStream(imagePath));
+  form.append('source', deviceId);
+
+  try {
+    const response = await axios.post(
+      'http://192.168.0.101:5000/api/predict',
+      form,
+      { headers: form.getHeaders() }
+    );
+    
+    console.log('Classification:', response.data.prediction);
+    console.log('Confidence:', response.data.confidence + '%');
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+}
+
+// Usage
+classifyWaste('waste_image.jpg', 'iot_sensor_warehouse_01');
+
+
+D. C++ (Embedded Systems)
+──────────────────────────
+
+#include <curl/curl.h>
+#include <fstream>
+#include <iostream>
+
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
+    s->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+int classifyWaste(const std::string& imagePath, const std::string& deviceId) {
+    CURL* curl = curl_easy_init();
+    if (!curl) return 1;
+
+    std::string readBuffer;
+    struct curl_httppost* formpost = nullptr;
+    struct curl_httppost* lastptr = nullptr;
+
+    // Add image file
+    curl_formadd(&formpost, &lastptr,
+                 CURLFORM_COPYNAME, "image",
+                 CURLFORM_FILE, imagePath.c_str(), NULL);
+    
+    // Add device source
+    curl_formadd(&formpost, &lastptr,
+                 CURLFORM_COPYNAME, "source",
+                 CURLFORM_COPYCONTENTS, deviceId.c_str(), NULL);
+
+    curl_easy_setopt(curl, CURLOPT_URL, "http://192.168.0.101:5000/api/predict");
+    curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+
+    CURLcode res = curl_easy_perform(curl);
+    
+    if (res != CURLE_OK) {
+        std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+    } else {
+        std::cout << "Response: " << readBuffer << std::endl;
+    }
+
+    curl_slist_free_all(NULL);
+    curl_easy_cleanup(curl);
+    
+    return (res == CURLE_OK) ? 0 : 1;
+}
+
+int main() {
+    return classifyWaste("waste.jpg", "iot_robot_01");
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+4. IoT DEVICE SCENARIOS
+═══════════════════════════════════════════════════════════════════════════════
+
+📦 SMART WASTE BIN
+──────────────────
+Hardware: Raspberry Pi 4 + Camera Module + LED Display
+- Sensor detects waste dropped
+- Captures image with camera
+- Sends to EcoVision API
+- Displays waste type on screen
+- Logs in database
+- Sends SMS/alert if E-waste detected
+
+Code flow:
+  1. PIR sensor detects motion
+  2. Camera takes snapshot (waste.jpg)
+  3. POST to /api/predict
+  4. Parse response["prediction"]
+  5. Update LCD display: "PLASTIC - BIN 2"
+  6. Store prediction_id for feedback
+
+
+🏭 MANUFACTURING WASTE CONVEYOR
+────────────────────────────────
+Hardware: Industrial camera + PLC Controller
+- Camera positioned above conveyor
+- Takes image every 5 seconds
+- Sends to classification API
+- PLC controls sorting gates/arms
+- Updates production dashboard
+
+Code flow:
+  1. Image from industrial camera (continuous)
+  2. POST frames to /api/predict
+  3. response["confidence"] > 90? → Gate 2
+  4. Else → Manual inspection
+  5. Store results in /api/analytics/breakdown
+
+
+🚛 COLLECTION TRUCK
+────────────────────
+Hardware: Mobile phone with built-in camera
+- Driver scans waste during collection
+- App sends image to backend
+- Gets recycling guidance
+- Stores in offline queue if no connection
+- Syncs when online
+
+Code flow:
+  1. Driver taps "Identify Waste"
+  2. App captures photo
+  3. Queue image (localStorage)
+  4. When online: POST to /api/predict
+  5. Show: "Glass - Place in Blue Bin"
+  6. Accumulate stats for /api/statistics
+
+
+🤖 ROBOTIC ARM (Sorting Facility)
+──────────────────────────────────
+Hardware: Industrial robot + stereo camera
+- Processes hundreds of items/hour
+- High-speed image capture
+- Real-time classification
+- Controls conveyor speed/direction
+
+Code flow:
+  1. Camera sees item entering
+  2. Rapid-fire predictions (batch)
+  3. Robot arm steers item based on classification
+  4. Counts statistics per device
+  5. Alerts on unusual items
+
+
+🛸 DRONE SURVEY (Landfill Monitoring)
+──────────────────────────────────────
+Hardware: Drone + aerial camera
+- Flies over landfill sections
+- Captures grid of images
+- Batch processes all at once
+- Maps waste distribution
+- Generates heat maps
+
+Code flow:
+  1. Collect 100+ aerial images
+  2. For each image:
+     POST to /api/predict
+  3. Aggregate by category
+  4. Create distribution map
+  5. Query /api/analytics/breakdown
+
+
+⚙️ SMART SORTER (Optical Recognition)
+───────────────────────────────────────
+Hardware: AI-powered sorter device
+- Multiple optical sensors
+- Processes 60+ items/minute
+- Network-connected classifier
+- Continuous feedback loop
+
+Code flow:
+  1. Sensor detects item
+  2. Camera captures (100ms exposure)
+  3. Send to /api/predict
+  4. Within 50ms: Get result
+  5. Actuate sort mechanism
+  6. Post feedback: /api/feedback
+  7. Improve model accuracy over time
+
+═══════════════════════════════════════════════════════════════════════════════
+5. NETWORK & SECURITY SETUP
+═══════════════════════════════════════════════════════════════════════════════
+
+LOCAL NETWORK (Unsecured - Development)
+────────────────────────────────────────
+No authentication needed - devices on same LAN
+
+Config:
+  API_URL = "http://192.168.0.101:5000/api/predict"
+
+Risks: Unencrypted data, no access control
+Use: Testing, internal facilities only
+
+
+CLOUD + HTTPS (Secured - Production)
+──────────────────────────────────────
+Backend deployed with SSL certificate
+
+Config:
+  API_URL = "https://waste-api.example.com/api/predict"
+
+Setup (AWS example):
+  1. Deploy backend to EC2/App Runner
+  2. Get SSL certificate (Let's Encrypt free)
+  3. Configure NGINX/Apache as reverse proxy
+  4. All traffic encrypted
+
+
+API KEY AUTHENTICATION (Recommended)
+─────────────────────────────────────
+Add API key requirement to protect endpoints
+
+Modify backend/app.py:
+
+  from functools import wraps
+  
+  VALID_API_KEYS = [
+    "iot_device_bin_01_key_xyz",
+    "iot_device_camera_02_key_abc"
+  ]
+  
+  def require_api_key(f):
+      @wraps(f)
+      def decorated(*args, **kwargs):
+          api_key = request.headers.get('X-API-Key')
+          if api_key not in VALID_API_KEYS:
+              return jsonify({'error': 'Invalid API key'}), 401
+          return f(*args, **kwargs)
+      return decorated
+  
+  @app.route('/api/predict', methods=['POST'])
+  @require_api_key
+  def predict():
+      # ... existing code ...
+
+Device request:
+
+  curl -X POST "https://waste-api.example.com/api/predict" \
+    -H "X-API-Key: iot_device_bin_01_key_xyz" \
+    -F "image=@waste.jpg" \
+    -F "source=iot_bin_01"
+
+
+VPN / PRIVATE NETWORK (Fortress-level)
+────────────────────────────────────────
+For critical infrastructure
+
+1. Set up OpenVPN or WireGuard
+2. All devices must connect to VPN
+3. Backend only accessible via VPN
+4. Multi-factor authentication
+5. IP whitelisting
+
+═══════════════════════════════════════════════════════════════════════════════
+6. BATCH PROCESSING (For High Volume)
+═══════════════════════════════════════════════════════════════════════════════
+
+Instead of sending one image at a time, batch process for efficiency:
+
+Python example (Process 1000 images):
+
+  import requests
+  import os
+  from concurrent.futures import ThreadPoolExecutor, as_completed
+  
+  API_URL = "http://192.168.0.101:5000/api/predict"
+  IMAGE_DIR = "/path/to/waste/images"
+  DEVICE_ID = "batch_processor_01"
+  
+  def send_image(image_path):
+      with open(image_path, 'rb') as img:
+          files = {'image': img}
+          data = {'source': DEVICE_ID}
+          response = requests.post(API_URL, files=files, data=data)
+      return response.json()
+  
+  # Parallel processing (4 concurrent requests)
+  with ThreadPoolExecutor(max_workers=4) as executor:
+      images = [os.path.join(IMAGE_DIR, f) for f in os.listdir(IMAGE_DIR)]
+      futures = [executor.submit(send_image, img) for img in images]
+      
+      for future in as_completed(futures):
+          result = future.result()
+          print(f"Prediction: {result['prediction']}")
+  
+  # Get summary
+  summary_response = requests.get(
+    "http://192.168.0.101:5000/api/analytics/breakdown"
+  )
+  print(summary_response.json())
+
+═══════════════════════════════════════════════════════════════════════════════
+7. ERROR HANDLING & RESILIENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+Network failures are common in IoT. Implement retry logic:
+
+Python retry example:
+
+  import time
+  import requests
+  from requests.adapters import HTTPAdapter
+  from urllib3.util.retry import Retry
+  
+  def create_session():
+      session = requests.Session()
+      
+      # Retry 3 times on failure
+      retry_strategy = Retry(
+          total=3,
+          status_forcelist=[429, 500, 502, 503, 504],
+          method_whitelist=["POST", "GET"],
+          backoff_factor=1  # Wait 1s, 2s, 4s
+      )
+      adapter = HTTPAdapter(max_retries=retry_strategy)
+      session.mount("http://", adapter)
+      session.mount("https://", adapter)
+      
+      return session
+  
+  session = create_session()
+  response = session.post(
+      API_URL,
+      files=files,
+      data=data,
+      timeout=10
+  )
+
+Offline fallback example:
+
+  import json
+  import sqlite3
+  
+  # When network fails, store locally
+  try:
+      response = requests.post(API_URL, ..., timeout=5)
+  except requests.exceptions.RequestException:
+      print("Network error - caching for later")
+      
+      # Save to local SQLite
+      conn = sqlite3.connect('offline_queue.db')
+      cursor = conn.cursor()
+      cursor.execute(
+          'INSERT INTO pending (image_path, timestamp) VALUES (?, ?)',
+          ('waste.jpg', time.time())
+      )
+      conn.commit()
+      conn.close()
+  
+  # When connection restored, process queue
+  # Periodic background job syncs offline_queue.db with server
+
+═══════════════════════════════════════════════════════════════════════════════
+8. MONITORING & LOGGING
+═══════════════════════════════════════════════════════════════════════════════
+
+Track device performance:
+
+Backend endpoint to query device stats:
+
+  GET /api/analytics/breakdown
+  
+Response:
+  {
+    "breakdown": [
+      {"category": "plastic", "count": 523, "percentage": 28.5},
+      {"category": "paper", "count": 312, "percentage": 17.0},
+      ...
+    ],
+    "total": 1831
+  }
+
+Filter by device source:
+  GET /api/history?limit=100
+  
+Check which devices sent most predictions:
+  SELECT upload_source, COUNT(*) as count
+  FROM prediction
+  GROUP BY upload_source
+  ORDER BY count DESC;
+
+═══════════════════════════════════════════════════════════════════════════════
+9. QUICK REFERENCE - IoT ENDPOINTS
+═══════════════════════════════════════════════════════════════════════════════
+
+Predict
+  POST /api/predict
+  Files: image, Data: source
+  
+Health
+  GET /api/health
+  Check if backend is alive
+  
+Statistics
+  GET /api/statistics
+  Overall system stats
+  
+Analytics Breakdown
+  GET /api/analytics/breakdown
+  Count by waste category
+  
+Categories
+  GET /api/categories
+  List all 17 waste types
+  
+History
+  GET /api/history?limit=50
+  Recent predictions
+  
+Recent Feedback
+  GET /api/feedback/recent
+  Model correction logs
+
+═══════════════════════════════════════════════════════════════════════════════
+10. TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ Connection refused (http://192.168.0.101:5000)
+   ✅ Check: Backend is running (python app.py)
+   ✅ Check: IP is correct (ipconfig)
+   ✅ Check: Port 5000 is not blocked by firewall
+   ✅ Try: Restart Flask server
+
+❌ 404 /api/predict not found
+   ✅ Check: Using correct endpoint (not /predict, must be /api/predict)
+   ✅ Check: Using POST method, not GET
+
+❌ 413 Request entity too large
+   ✅ Check: Image file size < 16MB
+   ✅ Solution: Compress/resize image before sending
+
+❌ Timeout (no response after 30 seconds)
+   ✅ Check: Server CPU/memory not maxed out
+   ✅ Check: Network bandwidth sufficient
+   ✅ Solution: Use batch processing with queuing
+
+❌ Model not loaded / 97% cardboard predictions
+   ✅ Check: best_model.h5 exists in backend/
+   ✅ Check: class_names.json exists and has 17 entries
+   ✅ Check: App.py logs for model load errors
+
+═══════════════════════════════════════════════════════════════════════════════
+SUMMARY
+═══════════════════════════════════════════════════════════════════════════════
+
+To integrate IoT devices:
+
+1. Deploy backend (local or cloud)
+2. Get server IP/URL
+3. Use sample code for your platform (Python/C++/JS/Bash)
+4. POST image to /api/predict with device ID
+5. Parse JSON response with classification
+6. Act on result (control hardware, display, database, etc.)
+7. Monitor with /api/analytics endpoints
+8. Implement error handling and offline queuing
+
+For questions or issues, check backend logs:
+  D:\Wastemanagement\backend\data\database\wastehandling.db
+
+═══════════════════════════════════════════════════════════════════════════════
+Last Updated: April 2026
+Status: ✅ IoT Ready
+═══════════════════════════════════════════════════════════════════════════════

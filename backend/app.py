@@ -157,6 +157,9 @@ class WasteClassifier:
     
     def __init__(self):
         self.model = None
+        self.repo_root = Path(__file__).resolve().parent.parent
+        self.model_path = None
+        self.class_names_path = None
         # Class names in exact order from Colab training
         self.class_names = [
             'Battery', 'Keyboard', 'Microwave', 'Mobile', 'Mouse', 'PCB', 'Player',
@@ -164,25 +167,81 @@ class WasteClassifier:
             'organic', 'paper', 'plastic', 'trash'
         ]
         self.load_model()
+
+    def _find_model_path(self):
+        # Search in priority order
+        search_paths = [
+            self.repo_root / 'backend' / 'best_model.h5',
+            self.repo_root / 'models' / 'waste_classifier_model.h5',
+            self.repo_root / 'models' / 'best_model.h5',
+            self.repo_root / 'best_model.h5',
+            self.repo_root / 'waste_classifier_model.h5',
+        ]
+        
+        for path in search_paths:
+            if path.exists():
+                return path
+
+        # Fallback: glob search
+        candidates = []
+        candidates += list((self.repo_root / 'models').glob('*.h5'))
+        candidates += list(self.repo_root.glob('*.h5'))
+        candidates += list(Path(__file__).resolve().parent.glob('*.h5'))
+
+        if not candidates:
+            return None
+
+        # Prefer a filename that includes common keywords.
+        ranked = sorted(
+            candidates,
+            key=lambda p: (
+                0 if 'best' in p.name.lower() else 1,
+                0 if 'waste' in p.name.lower() else 1,
+                0 if 'model' in p.name.lower() else 1,
+                p.name.lower()
+            )
+        )
+        return ranked[0]
+
+    def _find_class_names_path(self, model_path):
+        # Search in priority order
+        search_paths = [
+            self.repo_root / 'backend' / 'class_names.json',
+            self.repo_root / 'models' / 'class_names.json',
+            self.repo_root / 'class_names.json',
+        ]
+        
+        for path in search_paths:
+            if path.exists():
+                return path
+
+        # Fallback: check same directory as model
+        if model_path:
+            stem_json = model_path.with_suffix('.json')
+            if stem_json.exists():
+                return stem_json
+        
+        return None
     
     def load_model(self):
         """Load pre-trained model (can be replaced with actual model path)"""
         try:
-            repo_root = Path(__file__).resolve().parent.parent
-            model_path = repo_root / 'models' / 'waste_classifier_model.h5'
-            class_names_path = repo_root / 'models' / 'class_names.json'
-            if model_path.exists():
+            model_path = self._find_model_path()
+            class_names_path = self._find_class_names_path(model_path)
+            if model_path and model_path.exists():
                 self.model = tf.keras.models.load_model(str(model_path))
+                self.model_path = str(model_path)
                 self.has_rescaling = any(
                     layer.__class__.__name__ == 'Rescaling' for layer in self.model.layers
                 )
-                if class_names_path.exists():
+                if class_names_path and class_names_path.exists():
                     try:
                         with open(class_names_path, 'r', encoding='utf-8') as f:
                             loaded_names = json.load(f)
                         output_classes = int(self.model.output_shape[-1])
                         if isinstance(loaded_names, list) and len(loaded_names) == output_classes:
                             self.class_names = loaded_names
+                            self.class_names_path = str(class_names_path)
                             print(f"✓ Class labels loaded from: {class_names_path}")
                         else:
                             print(f"⚠️  class_names.json length mismatch (expected {output_classes})")
@@ -190,15 +249,27 @@ class WasteClassifier:
                         print(f"⚠️  Failed to load class_names.json: {e}")
                 print(f"✓ Model loaded from: {model_path}")
             else:
-                print(f"⚠️  Model not found at {model_path}")
-                print(f"✓ Using MOCK PREDICTIONS (place trained model in models/ folder)")
+                print("⚠️  Model not found in repo root or models/ folder")
+                print("✓ Using MOCK PREDICTIONS (place trained model in models/ folder)")
                 self.model = None
+                self.model_path = None
+                self.class_names_path = None
                 self.has_rescaling = False
         except Exception as e:
             print(f"⚠️  Error loading model: {e}")
             print(f"✓ Using MOCK PREDICTIONS instead")
             self.model = None
+            self.model_path = None
+            self.class_names_path = None
             self.has_rescaling = False
+
+    def info(self):
+        return {
+            'loaded': self.model is not None,
+            'model_path': self.model_path,
+            'class_names_path': self.class_names_path,
+            'class_count': len(self.class_names)
+        }
     
     def predict(self, image_path):
         """Make prediction on waste image"""
@@ -268,10 +339,16 @@ def health_check():
         'status': 'healthy',
         'timestamp': datetime.utcnow().isoformat(),
         'service': 'EcoVision AI Backend',
+        'model': classifier.info(),
         'database_location': app.config['DB_FOLDER'],
         'uploads_location': app.config['UPLOAD_FOLDER'],
         'backups_location': app.config['BACKUP_FOLDER']
     }), 200
+
+@app.route('/api/model-info', methods=['GET'])
+def model_info():
+    """Return model load status and metadata"""
+    return jsonify(classifier.info()), 200
 
 @app.route('/api/predict', methods=['POST'])
 def predict():

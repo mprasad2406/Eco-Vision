@@ -21,6 +21,8 @@ export default function Predict() {
   const [batchFiles, setBatchFiles] = useState([]);
   const [batchResults, setBatchResults] = useState([]);
   const [batchLoading, setBatchLoading] = useState(false);
+  const [modelInfo, setModelInfo] = useState(null);
+  const [modelError, setModelError] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -38,6 +40,19 @@ export default function Predict() {
       }
     };
     loadCategories();
+  }, []);
+
+  useEffect(() => {
+    const fetchModelInfo = async () => {
+      try {
+        const info = await apiService.getModelInfo();
+        setModelInfo(info);
+        setModelError(null);
+      } catch {
+        setModelError("Model status unavailable.");
+      }
+    };
+    fetchModelInfo();
   }, []);
 
   useEffect(() => {
@@ -76,6 +91,11 @@ export default function Predict() {
   const handlePredict = async () => {
     if (!image) {
       setError("Please upload an image first");
+      return;
+    }
+
+    if (modelInfo && !modelInfo.loaded) {
+      setError("Model is not loaded on the server. Please check backend model files.");
       return;
     }
 
@@ -388,6 +408,20 @@ export default function Predict() {
         <p>Intelligent material recognition for a sustainable future</p>
       </div>
 
+      <div className="model-banner">
+        <div>
+          <span className="model-label">Model Status</span>
+          <h3>{modelInfo?.loaded ? "Loaded" : "Not Loaded"}</h3>
+          {modelError && <p className="model-note">{modelError}</p>}
+          {!modelError && modelInfo && (
+            <p className="model-note">Classes: {modelInfo.class_count} · Source: {modelInfo.model_path || "-"}</p>
+          )}
+        </div>
+        <span className={`model-chip ${modelInfo?.loaded ? "ok" : "warn"}`}>
+          {modelInfo?.loaded ? "Ready" : "Fix Required"}
+        </span>
+      </div>
+
       <div className="predict-main-card premium-card">
         {!preview && !loading && !prediction && !cameraActive && (
           <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
@@ -681,6 +715,49 @@ export default function Predict() {
         .predict-header p {
           color: var(--text-muted);
           font-size: 1.1rem;
+        }
+
+        .model-banner {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+          padding: 1.2rem 1.5rem;
+          border-radius: 16px;
+          background: rgba(16, 185, 129, 0.08);
+          border: 1px solid rgba(16, 185, 129, 0.2);
+          margin-bottom: 2rem;
+        }
+        .model-label {
+          display: block;
+          font-size: 0.75rem;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          color: var(--text-muted);
+          font-weight: 700;
+        }
+        .model-banner h3 {
+          margin: 0.4rem 0;
+        }
+        .model-note {
+          color: var(--text-muted);
+          font-size: 0.9rem;
+        }
+        .model-chip {
+          padding: 0.35rem 0.9rem;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.8rem;
+          background: rgba(148, 163, 184, 0.2);
+          color: var(--text-main);
+        }
+        .model-chip.ok {
+          background: rgba(16, 185, 129, 0.18);
+          color: var(--primary-dark);
+        }
+        .model-chip.warn {
+          background: rgba(248, 113, 113, 0.18);
+          color: #b91c1c;
         }
 
         .predict-main-card {

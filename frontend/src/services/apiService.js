@@ -103,4 +103,19 @@ export const apiService = {
       throw error;
     }
   },
+
+  /**
+   * Get model load status
+   * @returns {Promise<Object>} Model info
+   */
+  async getModelInfo() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/model-info`);
+      if (!response.ok) throw new Error("Failed to fetch model info");
+      return await response.json();
+    } catch (error) {
+      console.error("Model info error:", error);
+      throw error;
+    }
+  },
 };
