@@ -3,18 +3,34 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import Logo from "./Logo";
 import { speechService } from "../utils/speechService";
 
-export default function Navbar() {
+export default function Navbar({ onMenuToggle }) {
   const location = useLocation();
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
   const [recognition, setRecognition] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("ecovision-theme");
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialTheme = stored || (prefersDark ? "dark" : "light");
+    setIsDarkMode(initialTheme === "dark");
+    document.documentElement.setAttribute("data-theme", initialTheme);
+  }, []);
+
+  const handleThemeToggle = () => {
+    const nextTheme = isDarkMode ? "light" : "dark";
+    setIsDarkMode(!isDarkMode);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+    localStorage.setItem("ecovision-theme", nextTheme);
+  };
 
   const handleSpeechToggle = () => {
     if (!speechService.isSupported()) {
@@ -61,6 +77,8 @@ export default function Navbar() {
       "nlp": "/nlp",
       "query": "/nlp",
       "natural": "/nlp",
+      "recycling": "/recycling",
+      "tips": "/recycling",
       "about": "/about",
       "contact": "/contact"
     };
@@ -87,6 +105,7 @@ export default function Navbar() {
             { path: "/categories", label: "Categories", icon: "📦" },
             { path: "/stats", label: "Stats", icon: "📊" },
             { path: "/nlp", label: "NLP Query", icon: "🧠" },
+            { path: "/recycling", label: "Recycling Tips", icon: "♻️" },
             { path: "/about", label: "About", icon: "ℹ️" },
             { path: "/contact", label: "Contact", icon: "✉️" }
           ].map((item) => (
@@ -109,6 +128,14 @@ export default function Navbar() {
           >
             🎤
           </button>
+          <button 
+            className="action-btn theme-toggle" 
+            onClick={handleThemeToggle}
+            title="Toggle Dark Mode"
+            aria-label="Toggle dark mode"
+          >
+            {isDarkMode ? "Light" : "Dark"}
+          </button>
           {isSpeechEnabled && (
             <button 
               className={`action-btn mic ${isListening ? "listening" : ""}`} 
@@ -117,6 +144,16 @@ export default function Navbar() {
               <span className="dot"></span>
             </button>
           )}
+          <button 
+            className="hamburger-menu" 
+            onClick={onMenuToggle}
+            title="Toggle Mobile Menu"
+            aria-label="Toggle navigation menu"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
         </div>
       </div>
 
@@ -161,6 +198,7 @@ export default function Navbar() {
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           letter-spacing: -0.5px;
+          white-space: nowrap;
         }
 
         .nav-menu {
@@ -216,6 +254,13 @@ export default function Navbar() {
           transition: all 0.3s ease;
         }
 
+        .action-btn.theme-toggle {
+          width: auto;
+          padding: 0 0.9rem;
+          font-size: 0.85rem;
+          font-weight: 700;
+        }
+
         .action-btn.speech.active {
           background: var(--primary);
           color: white;
@@ -244,6 +289,38 @@ export default function Navbar() {
         @media (max-width: 900px) {
           .nav-menu { display: none; }
           .premium-navbar { padding: 1rem; }
+        }
+
+        [data-theme="dark"] .premium-navbar.scrolled {
+          background: rgba(15, 23, 42, 0.8);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        [data-theme="dark"] .nav-menu {
+          background: rgba(15, 23, 42, 0.6);
+          border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        [data-theme="dark"] .nav-link {
+          color: rgba(226, 232, 240, 0.8);
+        }
+
+        [data-theme="dark"] .nav-link:hover {
+          color: #e2e8f0;
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        [data-theme="dark"] .nav-link.active {
+          background: rgba(15, 23, 42, 0.9);
+          color: #93c5fd;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        }
+
+        [data-theme="dark"] .action-btn {
+          background: rgba(15, 23, 42, 0.9);
+          border-color: rgba(255, 255, 255, 0.1);
+          color: #e2e8f0;
         }
       `}</style>
     </nav>

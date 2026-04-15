@@ -59,11 +59,14 @@ export default function Categories() {
         <div className="overview-text">
           <h2>Overview</h2>
           <p>
-            Eco-Vision recognizes <strong>17 waste categories</strong> spanning e-waste,
-            recyclables, organics, and general trash. Each category card summarizes
-            the material type, common examples, and safe disposal guidance. Use the
-            search bar to filter by name or description, and click any card to open
-            a detailed profile.
+            Eco-Vision recognizes <strong>17 waste categories</strong> organized into <strong>4 core groups</strong>:
+            <strong style={{color: 'var(--primary)'}}>E-waste</strong> (electronics & appliances),
+            <strong style={{color: 'var(--primary)'}}>Recyclables</strong> (paper, plastic, metal, glass),
+            <strong style={{color: 'var(--primary)'}}>Organic</strong> (food waste & biodegradables),
+            and <strong style={{color: 'var(--primary)'}}>General Trash</strong> (non-recyclable mixed waste).
+          </p>
+          <p style={{marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)'}}>
+            Use the search bar to filter by name or description, and click any card to open a detailed profile with disposal guidelines.
           </p>
         </div>
         <div className="overview-stats">
@@ -78,6 +81,25 @@ export default function Categories() {
           <div className="overview-stat">
             <span className="stat-number">1</span>
             <span className="stat-label">Click for Details</span>
+          </div>
+        </div>
+
+        <div className="group-breakdown">
+          <div className="group-item group-ewaste">
+            <span className="group-label">🔌 E-waste</span>
+            <span className="group-items">Battery, Keyboard, Mobile, Mouse, Printer, TV, Microwave, Washing Machine, Player, PCB</span>
+          </div>
+          <div className="group-item group-recyclable">
+            <span className="group-label">♻️ Recyclables</span>
+            <span className="group-items">Paper, Cardboard, Plastic, Glass, Metal</span>
+          </div>
+          <div className="group-item group-organic">
+            <span className="group-label">🌱 Organic</span>
+            <span className="group-items">Food scraps, peels, leaves, biodegradables</span>
+          </div>
+          <div className="group-item group-trash">
+            <span className="group-label">🗑️ General Trash</span>
+            <span className="group-items">Non-recyclable mixed waste, contaminated items</span>
           </div>
         </div>
       </section>
@@ -209,48 +231,66 @@ export default function Categories() {
 
         .categories-overview {
           width: 100%;
-          max-width: 1000px;
           margin: 0 auto 3rem;
-          padding: 2rem;
-          display: grid;
-          grid-template-columns: 1.5fr 1fr;
-          gap: 2rem;
-          align-items: center;
+          padding: 2.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 2.5rem;
         }
-        .categories-overview h2 {
-          font-size: 1.6rem;
-          margin-bottom: 0.75rem;
+        
+        .overview-text {
+          flex: 1;
+        }
+        
+        .overview-text h2 {
+          font-size: 1.8rem;
+          margin-bottom: 1rem;
           color: var(--text-main);
+          font-weight: 800;
         }
-        .categories-overview p {
+        
+        .overview-text p {
           color: var(--text-muted);
-          line-height: 1.7;
-          margin: 0;
+          line-height: 1.8;
+          font-size: 0.95rem;
         }
+        
         .overview-stats {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 1rem;
+          gap: 1.5rem;
+          width: 100%;
         }
+        
         .overview-stat {
-          background: rgba(16,185,129,0.08);
-          border: 1px solid rgba(16,185,129,0.15);
+          background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.05) 100%);
+          border: 1.5px solid rgba(16,185,129,0.2);
           border-radius: 16px;
-          padding: 1rem;
+          padding: 1.5rem 1rem;
           text-align: center;
+          transition: all 0.3s ease;
         }
+        
+        .overview-stat:hover {
+          border-color: rgba(16,185,129,0.4);
+          background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.08) 100%);
+        }
+        
         .stat-number {
           display: block;
-          font-size: 1.6rem;
+          font-size: 2rem;
           font-weight: 800;
           color: var(--primary);
+          margin-bottom: 0.5rem;
         }
+        
         .stat-label {
           display: block;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
           font-weight: 700;
           color: var(--text-muted);
-          margin-top: 0.35rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .cat-card {
@@ -420,11 +460,92 @@ export default function Categories() {
 
         @media (max-width: 768px) {
           .categories-hero h1 { font-size: 2.25rem; }
+          .categories-overview {
+            padding: 2rem 1.5rem;
+            gap: 2rem;
+          }
+          .overview-text h2 {
+            font-size: 1.5rem;
+          }
+          .overview-stats {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .group-breakdown {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .group-item {
+            padding: 1.5rem;
+          }
           .modal-header { flex-direction: column; text-align: center; gap: 1rem; }
           .detail-modal { padding: 2rem; }
         }
         @media (max-width: 900px) {
-          .categories-overview { grid-template-columns: 1fr; }
+          .categories-grid {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          }
+          .group-breakdown {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        .group-breakdown {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 1.5rem;
+          margin-top: 1rem;
+          width: 100%;
+        }
+
+        .group-item {
+          padding: 1.75rem;
+          border-radius: 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          border: 2px solid;
+          transition: all 0.3s ease;
+          backdrop-filter: blur(10px);
+        }
+
+        .group-item:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .group-item.group-ewaste {
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
+          border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .group-item.group-recyclable {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(34, 197, 94, 0.08) 100%);
+          border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .group-item.group-organic {
+          background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(245, 158, 11, 0.08) 100%);
+          border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .group-item.group-trash {
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(107, 114, 128, 0.08) 100%);
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .group-label {
+          font-weight: 800;
+          font-size: 1.15rem;
+          color: var(--text-main);
+          margin-bottom: 0.5rem;
+        }
+
+        .group-items {
+          font-size: 0.88rem;
+          color: var(--text-muted);
+          line-height: 1.6;
+          font-weight: 500;
         }
       `}</style>
     </div>

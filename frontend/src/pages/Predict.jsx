@@ -1,5 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { apiService } from "../services/apiService";
+import { speechService } from "../utils/speechService";
+import electronicsImg from "../assets/electronics.png";
+import recyclablesImg from "../assets/Recyclables.png";
+import organicImg from "../assets/organic.png";
 
 export default function Predict() {
   const [image, setImage] = useState(null);
@@ -8,14 +12,58 @@ export default function Predict() {
   const [prediction, setPrediction] = useState(null);
   const [error, setError] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [quality, setQuality] = useState(null);
+  const [overrideQuality, setOverrideQuality] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [feedbackLabel, setFeedbackLabel] = useState("");
+  const [feedbackNote, setFeedbackNote] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [batchFiles, setBatchFiles] = useState([]);
+  const [batchResults, setBatchResults] = useState([]);
+  const [batchLoading, setBatchLoading] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
+  const batchInputRef = useRef(null);
+
+  const QUEUE_KEY = "ecovision-offline-queue";
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await apiService.getCategories();
+        setCategories(data.categories || []);
+      } catch {
+        setCategories([]);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    if (!image) {
+      setQuality(null);
+      setOverrideQuality(false);
+      return;
+    }
+    runQualityCheck(image);
+  }, [image]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      flushOfflineQueue();
+    }, 15000);
+    flushOfflineQueue();
+    return () => clearInterval(interval);
+  }, []);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       setError(null);
+      setFeedbackSent(false);
+      setFeedbackLabel("");
+      setFeedbackNote("");
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result);
@@ -31,6 +79,11 @@ export default function Predict() {
       return;
     }
 
+    if (quality?.blocked && !overrideQuality) {
+      setError("Image quality is too low. Please retake or override to proceed.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setPrediction(null);
@@ -43,7 +96,8 @@ export default function Predict() {
         setPrediction(result);
       }
     } catch (err) {
-      setError("Failed to analyze image. Please try again.");
+      setError("Backend unreachable. Saved for offline retry.");
+      await queueOfflinePrediction(image, "upload");
     } finally {
       setLoading(false);
     }
@@ -95,11 +149,213 @@ export default function Predict() {
     setPreview(null);
     setPrediction(null);
     setError(null);
+    setQuality(null);
+    setOverrideQuality(false);
+    setFeedbackSent(false);
+    setFeedbackLabel("");
+    setFeedbackNote("");
     if (videoRef.current && videoRef.current.srcObject) {
       videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
     }
     setCameraActive(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleBatchUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setBatchFiles(files);
+    setBatchResults([]);
+  };
+
+  const handleBatchPredict = async () => {
+    if (batchFiles.length === 0) return;
+    setBatchLoading(true);
+    setBatchResults([]);
+    const results = [];
+
+    for (const file of batchFiles) {
+      try {
+        const res = await apiService.predictWaste(file);
+        results.push({
+          name: file.name,
+          prediction: res.prediction,
+          confidence: res.confidence,
+          top_predictions: res.top_predictions || []
+        });
+      } catch {
+        results.push({ name: file.name, error: "Queued (offline)" });
+        await queueOfflinePrediction(file, "upload");
+      }
+    }
+
+    setBatchResults(results);
+    setBatchLoading(false);
+  };
+
+  const exportBatchCSV = () => {
+    if (batchResults.length === 0) return;
+    const headers = ["file", "prediction", "confidence", "top_1", "top_2", "top_3"];
+    const rows = batchResults.map((r) => [
+      r.name,
+      r.prediction || "",
+      r.confidence || "",
+      r.top_predictions?.[0]?.class || "",
+      r.top_predictions?.[1]?.class || "",
+      r.top_predictions?.[2]?.class || ""
+    ]);
+    const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "eco_vision_batch_results.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const getBinInfo = (category) => {
+    const info = {
+      Plastic: { bin: "Blue Bin", why: "Clean recyclables", tips: "Rinse, dry, and flatten if possible." },
+      Metal: { bin: "Blue Bin", why: "Recyclable metal", tips: "Rinse and crush cans to save space." },
+      Glass: { bin: "Glass Bin", why: "Separate glass stream", tips: "Remove lids and avoid broken shards." },
+      Paper: { bin: "Paper Bin", why: "Paper recycling", tips: "Keep dry and oil-free." },
+      Cardboard: { bin: "Paper Bin", why: "Fiber recycling", tips: "Flatten boxes and keep dry." },
+      Organic: { bin: "Green Bin", why: "Compost stream", tips: "Separate food scraps from packaging." },
+      Battery: { bin: "E-Waste Drop-off", why: "Hazardous material", tips: "Never place in regular bins." },
+      Keyboard: { bin: "E-Waste Drop-off", why: "Electronic device", tips: "Use certified recycling centers." },
+      Mobile: { bin: "E-Waste Drop-off", why: "Electronic device", tips: "Use take-back programs." },
+      Mouse: { bin: "E-Waste Drop-off", why: "Electronic device", tips: "Drop at collection points." },
+      Printer: { bin: "E-Waste Drop-off", why: "Electronic device", tips: "Check manufacturer recycling." },
+      Television: { bin: "E-Waste Drop-off", why: "Large electronics", tips: "Requires authorized handling." },
+      Microwave: { bin: "E-Waste Drop-off", why: "Appliance waste", tips: "Handle with special care." },
+      "Washing Machine": { bin: "Bulk Pickup", why: "Large appliance", tips: "Arrange municipal pickup." },
+      PCB: { bin: "E-Waste Drop-off", why: "Hazardous components", tips: "Use certified recyclers." },
+      Player: { bin: "E-Waste Drop-off", why: "Electronic device", tips: "Recycle with electronics." },
+      trash: { bin: "Black Bin", why: "Non-recyclable", tips: "Bag properly and seal." }
+    };
+    return info[category] || { bin: "Check Local Rules", why: "Mixed material", tips: "Follow municipal guidance." };
+  };
+
+  const getExplainability = (category) => {
+    const reasons = {
+      Plastic: ["texture looks smooth", "high reflectivity", "typical bottle shapes"],
+      Glass: ["transparent surface", "sharp edges", "glassy reflections"],
+      Metal: ["shiny highlights", "rigid edges", "can-like contours"],
+      Paper: ["fibrous texture", "flat surfaces", "matte finish"],
+      Organic: ["irregular shapes", "natural textures", "soft colors"],
+      Battery: ["cylindrical shape", "metal ends", "label markings"],
+      Television: ["large flat panel", "dark screen region", "bezel outline"],
+      Microwave: ["boxy form", "door panel", "vent patterns"]
+    };
+    return reasons[category] || ["overall shape", "surface texture", "color profile"];
+  };
+
+  const runQualityCheck = async (file) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const size = 224;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+
+      let sum = 0;
+      const gray = new Float32Array(size * size);
+      for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+        const g = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        gray[j] = g;
+        sum += g;
+      }
+      const brightness = sum / (size * size);
+
+      const lap = (idx) => {
+        const x = idx % size;
+        const y = Math.floor(idx / size);
+        if (x === 0 || y === 0 || x === size - 1 || y === size - 1) return 0;
+        const center = gray[idx];
+        return (
+          gray[idx - size] + gray[idx + size] + gray[idx - 1] + gray[idx + 1] - 4 * center
+        );
+      };
+
+      let varianceSum = 0;
+      for (let i = 0; i < gray.length; i++) {
+        const v = lap(i);
+        varianceSum += v * v;
+      }
+      const blurScore = varianceSum / gray.length;
+
+      const isDark = brightness < 70;
+      const isBlurry = blurScore < 80;
+
+      setQuality({ brightness: Math.round(brightness), blurScore: Math.round(blurScore), isDark, isBlurry, blocked: isDark || isBlurry });
+    };
+  };
+
+  const queueOfflinePrediction = async (file, source) => {
+    const reader = new FileReader();
+    const dataUrl = await new Promise((resolve) => {
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+    const item = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      filename: file.name,
+      dataUrl,
+      source,
+      queuedAt: new Date().toISOString()
+    };
+    const existing = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+    const next = [item, ...existing].slice(0, 8);
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(next));
+  };
+
+  const flushOfflineQueue = async () => {
+    if (!navigator.onLine) return;
+    const existing = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+    if (existing.length === 0) return;
+
+    const remaining = [];
+    for (const item of existing) {
+      try {
+        const blob = await fetch(item.dataUrl).then((r) => r.blob());
+        const file = new File([blob], item.filename || "queued.jpg", { type: blob.type || "image/jpeg" });
+        await apiService.predictWaste(file);
+      } catch {
+        remaining.push(item);
+      }
+    }
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!prediction || !feedbackLabel) return;
+    try {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prediction_id: prediction.prediction_id,
+          image_id: prediction.image_id,
+          predicted_category: prediction.prediction,
+          corrected_category: feedbackLabel,
+          confidence: prediction.confidence ? Number(prediction.confidence) / 100 : null,
+          notes: feedbackNote
+        })
+      });
+      setFeedbackSent(true);
+    } catch {
+      setError("Unable to save feedback right now.");
+    }
   };
 
   const getDisposalTips = (category) => {
@@ -175,6 +431,23 @@ export default function Predict() {
             {preview && (
               <div className="preview-container">
                 <img src={preview} alt="Waste preview" className="preview-img" />
+                {quality && (
+                  <div className={`quality-banner ${quality.blocked ? "blocked" : "ok"}`}>
+                    <div>
+                      <strong>Quality Check:</strong> Brightness {quality.brightness}/255, Blur score {quality.blurScore}
+                    </div>
+                    {quality.blocked ? (
+                      <div className="quality-actions">
+                        <span className="quality-warning">Low quality detected (blurry or dark).</span>
+                        <button className="predict-btn secondary" onClick={() => setOverrideQuality(true)}>
+                          Proceed Anyway
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="quality-good">Looks good for prediction.</span>
+                    )}
+                  </div>
+                )}
                 <div className="preview-actions">
                   <button 
                     onClick={handlePredict} 
@@ -202,6 +475,24 @@ export default function Predict() {
               <div className="result-category-shell">
                 <span className="result-label">Identified Material</span>
                 <h2 className="result-category">{prediction.prediction}</h2>
+              </div>
+              <div className="result-voice-actions">
+                <button
+                  className="predict-btn secondary"
+                  onClick={() =>
+                    speechService.speak(
+                      `Predicted ${prediction.prediction} with ${Number(prediction.confidence).toFixed(1)} percent confidence.`
+                    )
+                  }
+                >
+                  🔊 Explain Prediction
+                </button>
+                <button
+                  className="predict-btn secondary"
+                  onClick={() => speechService.speak(getDisposalTips(prediction.prediction))}
+                >
+                  🔊 Read Tips
+                </button>
               </div>
               <div className="confidence-section">
                 <div className="confidence-header">
@@ -239,6 +530,53 @@ export default function Predict() {
               </div>
             </div>
 
+            <div className="smart-bin premium-card">
+              <div className="smart-bin-header">
+                <h3>🗑️ Smart Bin Decision</h3>
+                <span className="bin-chip">{getBinInfo(prediction.prediction).bin}</span>
+              </div>
+              <p className="bin-why">Why: {getBinInfo(prediction.prediction).why}</p>
+              <p className="bin-tip">Tip: {getBinInfo(prediction.prediction).tips}</p>
+            </div>
+
+            <div className="explain-grid">
+              {getExplainability(prediction.prediction).map((reason, idx) => (
+                <div key={idx} className="explain-card premium-card">
+                  <h4>Clue {idx + 1}</h4>
+                  <p>{reason}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="feedback-box premium-card">
+              <h3>Was this correct?</h3>
+              <p>Help improve the model by correcting the label.</p>
+              <div className="feedback-row">
+                <select
+                  value={feedbackLabel}
+                  onChange={(e) => setFeedbackLabel(e.target.value)}
+                >
+                  <option value="">Select correct label</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Optional note (e.g., broken glass)"
+                  value={feedbackNote}
+                  onChange={(e) => setFeedbackNote(e.target.value)}
+                />
+                <button
+                  className="predict-btn primary"
+                  onClick={handleFeedbackSubmit}
+                  disabled={!feedbackLabel || feedbackSent}
+                >
+                  {feedbackSent ? "Thanks!" : "Submit"}
+                </button>
+              </div>
+            </div>
+
             <div className="result-reset">
               <button onClick={handleClear} className="predict-btn primary">Analyze Another</button>
             </div>
@@ -246,16 +584,76 @@ export default function Predict() {
         )}
       </div>
 
+      <section className="batch-section premium-card">
+        <div className="batch-header">
+          <h2>Batch Processing</h2>
+          <p>Upload multiple images and export results to CSV.</p>
+        </div>
+        <div className="batch-actions">
+          <button
+            className="predict-btn secondary"
+            onClick={() => batchInputRef.current?.click()}
+          >
+            📂 Select Images
+          </button>
+          <button
+            className="predict-btn primary"
+            onClick={handleBatchPredict}
+            disabled={batchLoading || batchFiles.length === 0}
+          >
+            {batchLoading ? "Processing..." : "Run Batch"}
+          </button>
+          <button
+            className="predict-btn text"
+            onClick={exportBatchCSV}
+            disabled={batchResults.length === 0}
+          >
+            ⬇️ Export CSV
+          </button>
+          <input
+            ref={batchInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleBatchUpload}
+            style={{ display: "none" }}
+          />
+        </div>
+
+        {batchFiles.length > 0 && (
+          <div className="batch-summary">
+            {batchFiles.length} file(s) ready for batch prediction.
+          </div>
+        )}
+
+        {batchResults.length > 0 && (
+          <div className="batch-table">
+            <div className="batch-row batch-header-row">
+              <span>File</span>
+              <span>Prediction</span>
+              <span>Confidence</span>
+            </div>
+            {batchResults.map((r, i) => (
+              <div key={i} className="batch-row">
+                <span>{r.name}</span>
+                <span>{r.prediction || r.error}</span>
+                <span>{r.confidence ? `${Number(r.confidence).toFixed(1)}%` : "-"}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="predict-examples">
         <h2 className="section-title">Common Categories</h2>
         <div className="example-grid">
           {[
-            { img: "https://images.unsplash.com/photo-1559027615-cd2628902d4a", title: "Electronics", desc: "Keyboards, mobiles, PCBs" },
-            { img: "https://images.unsplash.com/photo-1572949645581-9b0b48f57264", title: "Organic", desc: "Food waste, plant materials" },
-            { img: "https://images.unsplash.com/photo-1584361298901-f66c73f72f46", title: "Recyclables", desc: "Plastic, metal, glass" }
+            { img: electronicsImg, title: "Electronics", desc: "Keyboards, mobiles, PCBs" },
+            { img: organicImg, title: "Organic", desc: "Food waste, plant materials" },
+            { img: recyclablesImg, title: "Recyclables", desc: "Plastic, metal, glass" }
           ].map((item, i) => (
             <div key={i} className="example-item premium-card">
-              <img src={`${item.img}?w=400&h=300&fit=crop`} alt={item.title} />
+              <img src={item.img} alt={item.title} />
               <div className="example-info">
                 <h3>{item.title}</h3>
                 <p>{item.desc}</p>
@@ -385,6 +783,36 @@ export default function Predict() {
           box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
 
+        .quality-banner {
+          margin: 0 auto 1.5rem;
+          padding: 0.8rem 1.2rem;
+          border-radius: 14px;
+          background: rgba(16, 185, 129, 0.08);
+          border: 1px solid rgba(16, 185, 129, 0.2);
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          max-width: 600px;
+        }
+        .quality-banner.blocked {
+          background: rgba(239, 68, 68, 0.08);
+          border-color: rgba(239, 68, 68, 0.25);
+        }
+        .quality-warning {
+          color: #b91c1c;
+          font-weight: 600;
+        }
+        .quality-good {
+          color: #047857;
+          font-weight: 600;
+        }
+        .quality-actions {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+
         .results-view {
           display: flex;
           flex-direction: column;
@@ -392,6 +820,13 @@ export default function Predict() {
         }
         .result-main {
           text-align: center;
+        }
+        .result-voice-actions {
+          margin: 1rem 0 1.5rem;
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          flex-wrap: wrap;
         }
         .result-label {
           text-transform: uppercase;
@@ -468,6 +903,102 @@ export default function Predict() {
           text-align: center;
         }
 
+        .smart-bin {
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+        }
+        .smart-bin-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .bin-chip {
+          background: rgba(16, 185, 129, 0.12);
+          color: var(--primary-dark);
+          padding: 0.3rem 0.8rem;
+          border-radius: 999px;
+          font-weight: 700;
+        }
+        .bin-why {
+          color: var(--text-muted);
+        }
+        .bin-tip {
+          font-weight: 600;
+        }
+
+        .explain-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 1rem;
+        }
+        .explain-card {
+          padding: 1rem;
+        }
+        .explain-card h4 {
+          margin-bottom: 0.4rem;
+          font-size: 0.95rem;
+        }
+
+        .feedback-box {
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.8rem;
+        }
+        .feedback-row {
+          display: grid;
+          grid-template-columns: 180px 1fr 140px;
+          gap: 0.8rem;
+        }
+        .feedback-row select,
+        .feedback-row input {
+          padding: 0.7rem 0.9rem;
+          border-radius: 12px;
+          border: 1px solid rgba(0,0,0,0.1);
+          font-family: inherit;
+          background: rgba(255,255,255,0.7);
+        }
+
+        .batch-section {
+          margin-top: 2.5rem;
+          padding: 2rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        .batch-header h2 {
+          margin-bottom: 0.4rem;
+        }
+        .batch-actions {
+          display: flex;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .batch-summary {
+          color: var(--text-muted);
+        }
+        .batch-table {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+        .batch-row {
+          display: grid;
+          grid-template-columns: 1.2fr 1fr 0.6fr;
+          gap: 1rem;
+          padding: 0.6rem 0.8rem;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.6);
+        }
+        .batch-header-row {
+          font-weight: 700;
+          background: rgba(16, 185, 129, 0.1);
+        }
+
         .predict-examples {
           margin-top: 5rem;
         }
@@ -512,6 +1043,7 @@ export default function Predict() {
           .predict-main-card { padding: 1.5rem; }
           .result-details { grid-template-columns: 1fr; }
           .result-category { font-size: 2rem; }
+          .feedback-row { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

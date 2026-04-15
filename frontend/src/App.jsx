@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Predict from "./pages/Predict";
@@ -9,8 +10,19 @@ import Stats from "./pages/Stats";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import WasteQuery from "./pages/WasteQuery";
+import RecyclingTips from "./pages/RecyclingTips";
 
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleMenuToggle = () => {
+    setIsSidebarOpen((prev) => !prev);
+  };
+
+  const handleMenuClose = () => {
+    setIsSidebarOpen(false);
+  };
+
   return (
     <Router>
       <Routes>
@@ -19,7 +31,8 @@ function App() {
           path="/*"
           element={
             <div className="app-wrapper">
-              <Navbar />
+              <Navbar onMenuToggle={handleMenuToggle} />
+              <Sidebar isOpen={isSidebarOpen} onClose={handleMenuClose} />
               <main className="app-main">
                 <div className="page-transition-container">
                   <Routes>
@@ -28,6 +41,7 @@ function App() {
                     <Route path="/categories" element={<Categories />} />
                     <Route path="/stats" element={<Stats />} />
                     <Route path="/nlp" element={<WasteQuery />} />
+                    <Route path="/recycling" element={<RecyclingTips />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/contact" element={<Contact />} />
                   </Routes>
@@ -61,6 +75,14 @@ function App() {
           --glass-border: rgba(255, 255, 255, 0.125);
         }
 
+        [data-theme="dark"] {
+          --bg: #0b1220;
+          --text-main: #e2e8f0;
+          --text-muted: #94a3b8;
+          --glass-bg: rgba(15, 23, 42, 0.7);
+          --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
         body {
           font-family: 'Plus Jakarta Sans', sans-serif;
           background-color: var(--bg);
@@ -73,6 +95,14 @@ function App() {
           line-height: 1.6;
           min-height: 100vh;
           overflow-x: hidden;
+        }
+
+        [data-theme="dark"] body {
+          background-image:
+            radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 55%),
+            radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 55%),
+            radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.08) 0px, transparent 55%),
+            radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.08) 0px, transparent 55%);
         }
 
         .app-wrapper {
@@ -90,9 +120,25 @@ function App() {
           animation: pageFadeIn 0.8s ease-out;
         }
 
+        .page-transition-container > * {
+          animation: pageContentIn 0.6s ease-out;
+        }
+
         @keyframes pageFadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pageContentIn {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .app-main,
+          .page-transition-container > * {
+            animation: none !important;
+          }
         }
 
         /* Reusable UI Components styling */

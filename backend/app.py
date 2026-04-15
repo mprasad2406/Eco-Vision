@@ -20,6 +20,7 @@ import tensorflow as tf
 import json
 from pathlib import Path
 import re
+from sqlalchemy.exc import OperationalError
 
 # Suppress TensorFlow verbosity
 tf.get_logger().setLevel('ERROR')
@@ -126,6 +127,29 @@ class NLPQueryLog(db.Model):
             'intent': self.intent
         }
 
+class Feedback(db.Model):
+    """User correction feedback for predictions"""
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    prediction_id = db.Column(db.Integer, nullable=True)
+    image_id = db.Column(db.Integer, nullable=True)
+    predicted_category = db.Column(db.String(50), nullable=False)
+    corrected_category = db.Column(db.String(50), nullable=False)
+    confidence = db.Column(db.Float, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat(),
+            'prediction_id': self.prediction_id,
+            'image_id': self.image_id,
+            'predicted_category': self.predicted_category,
+            'corrected_category': self.corrected_category,
+            'confidence': round(self.confidence * 100, 2) if self.confidence is not None else None,
+            'notes': self.notes
+        }
+
 # =================== TRASH DETECTION MODEL ===================
 
 class WasteClassifier:
@@ -133,11 +157,11 @@ class WasteClassifier:
     
     def __init__(self):
         self.model = None
+        # Class names in exact order from Colab training
         self.class_names = [
-            'Battery', 'Cardboard', 'Glass', 'Metal', 'Organic',
-            'Paper', 'Plastic', 'Trash', 'Keyboard', 'Mobile',
-            'Mouse', 'Printer', 'Television', 'Microwave', 'Washing Machine',
-            'PCB', 'Player'
+            'Battery', 'Keyboard', 'Microwave', 'Mobile', 'Mouse', 'PCB', 'Player',
+            'Printer', 'Television', 'Washing Machine', 'cardboard', 'glass', 'metal',
+            'organic', 'paper', 'plastic', 'trash'
         ]
         self.load_model()
     
@@ -305,7 +329,8 @@ def predict():
             'prediction': prediction_result['primary_class'],
             'confidence': round(prediction_result['confidence'] * 100, 2),
             'top_predictions': prediction_result['top_predictions'],
-            'image_id': uploaded_image.id
+            'image_id': uploaded_image.id,
+            'prediction_id': prediction.id
         }), 200
         
     except Exception as e:
@@ -319,6 +344,41 @@ def get_history():
         limit = request.args.get('limit', 20, type=int)
         predictions = Prediction.query.order_by(Prediction.timestamp.desc()).limit(limit).all()
         return jsonify([p.to_dict() for p in predictions]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
+    """Store user correction feedback"""
+    try:
+        data = request.json or {}
+        predicted = data.get('predicted_category')
+        corrected = data.get('corrected_category')
+        if not predicted or not corrected:
+            return jsonify({'error': 'predicted_category and corrected_category are required'}), 400
+
+        feedback = Feedback(
+            prediction_id=data.get('prediction_id'),
+            image_id=data.get('image_id'),
+            predicted_category=predicted,
+            corrected_category=corrected,
+            confidence=data.get('confidence'),
+            notes=data.get('notes')
+        )
+        db.session.add(feedback)
+        db.session.commit()
+        return jsonify({'success': True, 'feedback': feedback.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/feedback/recent', methods=['GET'])
+def recent_feedback():
+    """Return recent correction feedback"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        rows = Feedback.query.order_by(Feedback.timestamp.desc()).limit(limit).all()
+        return jsonify([r.to_dict() for r in rows]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -397,6 +457,26 @@ def _process_nlp_query(query):
     total_uploads = stats.total_uploads if stats else 0
     total_cameras = stats.total_cameras if stats else 0
     avg_confidence = stats.average_confidence if stats else 0.0
+
+    recycling_tips = {
+        'plastic': "Rinse, dry, and place in the recyclables bin. Avoid oily or contaminated plastics.",
+        'metal': "Rinse cans and place in the recyclables bin. Crush if possible to save space.",
+        'glass': "Rinse and place in the glass bin. Remove lids or caps first.",
+        'paper': "Keep dry and place in the paper bin. Avoid wet or greasy paper.",
+        'cardboard': "Flatten boxes and keep dry. Place in the paper/cardboard bin.",
+        'organic': "Compost if possible. Use a green/organic bin for food waste.",
+        'Battery': "Do not put in regular bins. Take to a battery or e-waste collection center.",
+        'Keyboard': "E-waste. Drop off at certified electronics recycling.",
+        'Mobile': "E-waste. Use certified take-back or recycling programs.",
+        'Mouse': "E-waste. Recycle at electronics collection points.",
+        'Printer': "E-waste. Check manufacturer take-back programs.",
+        'Television': "E-waste. Large electronics must go to authorized facilities.",
+        'Microwave': "E-waste. Requires specialized handling at collection centers.",
+        'Washing Machine': "Large appliance. Contact municipal collection or authorized recycler.",
+        'PCB': "Hazardous e-waste. Use certified electronics recyclers.",
+        'Player': "E-waste. Recycle with electronics drop-off services.",
+        'trash': "General waste. Bag properly and place in the landfill bin."
+    }
     
     # ── today / this week / this month time filters ──────────────────────
     now = datetime.utcnow()
@@ -409,6 +489,12 @@ def _process_nlp_query(query):
         if category:
             q = q.filter_by(category=category)
         return q.count()
+
+    # ── intent: recycling tips / disposal help ──────────────────────────
+    if any(w in query for w in ['recycle', 'recycling', 'dispose', 'disposal', 'bin', 'where do i put', 'how to']) and _extract_category(query):
+        cat = _extract_category(query)
+        tip = recycling_tips.get(cat, "Please dispose responsibly according to local guidelines.")
+        return f"For {cat}, {tip}", 'recycle_tips'
     
     # ── intent: help ─────────────────────────────────────────────────────
     if any(w in query for w in ['help', 'what can', 'what do you know', 'commands', 'questions']):
@@ -445,8 +531,14 @@ def _process_nlp_query(query):
     if ' vs ' in query or ' versus ' in query or 'compare' in query:
         cats = re.findall(r'(plastic|metal|glass|paper|organic|cardboard|battery|electronic|e-waste|pcb)', query)
         if len(cats) >= 2:
-            cat_a = _normalize_category(cats[0])
-            cat_b = _normalize_category(cats[1])
+            # Convert to exact class names
+            mapping = {
+                'plastic': 'plastic', 'metal': 'metal', 'glass': 'glass',
+                'paper': 'paper', 'organic': 'organic', 'cardboard': 'cardboard',
+                'battery': 'Battery', 'electronic': 'PCB', 'e-waste': 'PCB', 'pcb': 'PCB'
+            }
+            cat_a = mapping.get(cats[0], cats[0])
+            cat_b = mapping.get(cats[1], cats[1])
             count_a = Prediction.query.filter_by(category=cat_a).count()
             count_b = Prediction.query.filter_by(category=cat_b).count()
             winner = cat_a if count_a >= count_b else cat_b
@@ -506,7 +598,8 @@ def _process_nlp_query(query):
     
     # ── intent: e-waste ───────────────────────────────────────────────────
     if any(w in query for w in ['electronic', 'e-waste', 'ewaste', 'pcb', 'circuit']):
-        e_cats = ['PCB', 'Keyboard', 'Mobile', 'Mouse', 'Printer', 'Television', 'Microwave', 'Washing Machine', 'Player']
+        # E-waste categories using EXACT class names from trained model
+        e_cats = ['Battery', 'Keyboard', 'Mobile', 'Mouse', 'Printer', 'Television', 'Microwave', 'Washing Machine', 'Player', 'PCB']
         count = Prediction.query.filter(Prediction.category.in_(e_cats)).count()
         return f"Electronic waste (E-waste) accounts for {count} of all detected items. Top categories: PCB, Mobile, Television.", 'ewaste'
     
@@ -526,10 +619,11 @@ def _process_nlp_query(query):
     
     # ── intent: recyclable ────────────────────────────────────────────────
     if any(w in query for w in ['recycl', 'recyclable', 'recycle']):
-        recyclable_cats = ['Paper', 'Cardboard', 'Glass', 'Metal', 'Plastic']
+        # Recyclable categories using EXACT class names from trained model
+        recyclable_cats = ['paper', 'cardboard', 'glass', 'metal', 'plastic']
         count = Prediction.query.filter(Prediction.category.in_(recyclable_cats)).count()
         pct = round(count / total_predictions * 100, 1) if total_predictions > 0 else 0
-        return f"{count} items ({pct}%) are recyclable materials (Paper, Cardboard, Glass, Metal, Plastic).", 'recyclable'
+        return f"{count} items ({pct}%) are recyclable materials (paper, cardboard, glass, metal, plastic).", 'recyclable'
     
     # ── intent: trend / growth ────────────────────────────────────────────
     if any(w in query for w in ['trend', 'growth', 'growing', 'increasing']):
@@ -553,15 +647,16 @@ def _process_nlp_query(query):
 
 
 def _extract_category(query):
-    """Extract a specific waste category from query text"""
+    """Extract a specific waste category from query text - uses EXACT class names from trained model"""
+    # Map keywords to EXACT class names from trained model
     mapping = {
-        'plastic': 'Plastic',
-        'metal': 'Metal',
-        'glass': 'Glass',
-        'paper': 'Paper',
-        'organic': 'Organic',
-        'food': 'Organic',
-        'cardboard': 'Cardboard',
+        'plastic': 'plastic',
+        'metal': 'metal',
+        'glass': 'glass',
+        'paper': 'paper',
+        'organic': 'organic',
+        'food': 'organic',
+        'cardboard': 'cardboard',
         'battery': 'Battery',
         'batteries': 'Battery',
         'keyboard': 'Keyboard',
@@ -575,7 +670,7 @@ def _extract_category(query):
         'washing machine': 'Washing Machine',
         'pcb': 'PCB',
         'circuit': 'PCB',
-        'trash': 'Trash',
+        'trash': 'trash',
         'player': 'Player',
     }
     for keyword, category in mapping.items():
@@ -601,6 +696,14 @@ def nlp_history():
         limit = request.args.get('limit', 10, type=int)
         logs = NLPQueryLog.query.order_by(NLPQueryLog.timestamp.desc()).limit(limit).all()
         return jsonify([l.to_dict() for l in logs]), 200
+    except OperationalError:
+        # Handle missing table or locked DB gracefully
+        db.session.rollback()
+        try:
+            db.create_all()
+        except Exception:
+            pass
+        return jsonify([]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -614,6 +717,7 @@ def nlp_suggestions():
         "What is the most common waste type?",
         "Show me plastic count this week",
         "What is the model's average accuracy?",
+        "How do I recycle batteries?",
         "How much e-waste has been detected?",
         "How many recyclable items are there?",
         "Compare plastic vs metal",
@@ -648,6 +752,62 @@ def analytics_breakdown():
             for r in rows
         ]
         return jsonify({'breakdown': breakdown, 'total': total}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/analytics/daily', methods=['GET'])
+def analytics_daily():
+    """Daily prediction counts for the last N days"""
+    try:
+        from sqlalchemy import func
+        days = request.args.get('days', 7, type=int)
+        end_date = datetime.utcnow().date()
+        start_date = end_date - timedelta(days=days - 1)
+
+        rows = db.session.query(
+            func.date(Prediction.timestamp).label('day'),
+            func.count(Prediction.id).label('count')
+        ).filter(Prediction.timestamp >= start_date).group_by('day').all()
+
+        row_map = {r.day: r.count for r in rows}
+        series = []
+        for i in range(days):
+            day = start_date + timedelta(days=i)
+            series.append({
+                'date': day.isoformat(),
+                'count': int(row_map.get(day.isoformat(), 0))
+            })
+
+        return jsonify({'series': series}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/analytics/top-categories', methods=['GET'])
+def analytics_top_categories():
+    """Top categories by count"""
+    try:
+        from sqlalchemy import func
+        limit = request.args.get('limit', 5, type=int)
+        rows = db.session.query(
+            Prediction.category,
+            func.count(Prediction.category).label('count')
+        ).group_by(Prediction.category).order_by(db.desc('count')).limit(limit).all()
+
+        data = [{'category': r[0], 'count': r[1]} for r in rows]
+        return jsonify({'top_categories': data}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/analytics/recent-errors', methods=['GET'])
+def analytics_recent_errors():
+    """Recent corrections (treated as errors)"""
+    try:
+        limit = request.args.get('limit', 8, type=int)
+        rows = Feedback.query.order_by(Feedback.timestamp.desc()).limit(limit).all()
+        return jsonify({'errors': [r.to_dict() for r in rows]}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
