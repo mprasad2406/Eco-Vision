@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import { apiService } from "../services/apiService";
-import "../styles/Predict.css";
 
 export default function Predict() {
   const [image, setImage] = useState(null);
@@ -293,6 +292,70 @@ export default function Predict() {
           </div>
         )}
       </div>
+      <section className="predict-showcase">
+        <h2>Example Waste Classifications</h2>
+        <div className="example-grid">
+          <div className="example-card">
+            <img src="https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=400&h=300&fit=crop" alt="Electronics" />
+            <h3>Electronic Waste</h3>
+            <p>Devices like phones, keyboards, and circuit boards</p>
+          </div>
+          <div className="example-card">
+            <img src="https://images.unsplash.com/photo-1572949645581-9b0b48f57264?w=400&h=300&fit=crop" alt="Organic" />
+            <h3>Organic Waste</h3>
+            <p>Biodegradable materials like food and plants</p>
+          </div>
+          <div className="example-card">
+            <img src="https://images.unsplash.com/photo-1584361298901-f66c73f72f46?w=400&h=300&fit=crop" alt="Plastic" />
+            <h3>Plastic Waste</h3>
+            <p>Recyclable plastic bottles and containers</p>
+          </div>
+        </div>
+      </section>
+      <style>{`
+  .predict-container { max-width: 900px; margin: 0 auto; }
+  .predict-wrapper { background: white; border-radius: 32px; padding: 2rem; box-shadow: 0 12px 30px rgba(0,0,0,0.05); }
+  .predict-header { text-align: center; margin-bottom: 2rem; }
+  .upload-section { text-align: center; }
+  .upload-box { border: 2px dashed #dce4ec; border-radius: 32px; padding: 2rem; cursor: pointer; transition: all 0.2s; }
+  .upload-box:hover { border-color: #1e6f5c; background: #f8fafc; }
+  .btn { padding: 0.6rem 1.2rem; border-radius: 40px; border: none; cursor: pointer; margin: 0.3rem; font-size: 0.9rem; }
+  .btn-primary { background: #1e6f5c; color: white; }
+  .btn-secondary { background: #eef2f7; color: #1a2a3f; }
+  .preview-image { max-width: 100%; border-radius: 24px; margin: 1rem 0; }
+  .results-section { margin-top: 2rem; }
+  .primary-prediction { background: #f0f9f4; border-radius: 24px; padding: 1.5rem; text-align: center; }
+  .category-badge { font-size: 1.8rem; font-weight: 700; color: #1e6f5c; }
+  .confidence-meter { background: #eef2f7; border-radius: 20px; height: 8px; margin: 1rem 0; }
+  .confidence-bar { background: #1e6f5c; height: 100%; border-radius: 20px; }
+  .top-predictions { margin-top: 1.5rem; }
+  .prediction-item { display: flex; justify-content: space-between; padding: 0.5rem; border-bottom: 1px solid #eef2f7; }
+  .disposal-tips { background: #fff8e7; border-radius: 20px; padding: 1rem; margin: 1rem 0; }
+  .loading-spinner { text-align: center; padding: 2rem; }
+  .spinner { border: 4px solid #eef2f7; border-top: 4px solid #1e6f5c; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes imagePan { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  
+  .predict-showcase { margin-top: 4rem; padding: 3rem 2rem; background: linear-gradient(135deg, rgba(30, 111, 92, 0.08), rgba(34, 197, 94, 0.05)); border-radius: 28px; animation: fadeIn 0.8s ease-out; }
+  .predict-showcase h2 { text-align: center; font-size: 2rem; background: linear-gradient(135deg, #1e6f5c, #16a34a); background-clip: text; -webkit-background-clip: text; color: transparent; margin-bottom: 3rem; font-weight: 800; }
+  .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+  .example-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(30, 111, 92, 0.1); transition: all 0.4s ease; animation: fadeIn 0.8s ease-out backwards; }
+  .example-card:nth-child(1) { animation-delay: 0.2s; }
+  .example-card:nth-child(2) { animation-delay: 0.3s; }
+  .example-card:nth-child(3) { animation-delay: 0.4s; }
+  .example-card img { width: 100%; height: 250px; object-fit: cover; transition: transform 0.6s ease; animation: imagePan 4s ease-in-out infinite; }
+  .example-card:hover img { transform: scale(1.08); animation: none; }
+  .example-card h3 { font-size: 1.3rem; color: #1e6f5c; margin: 1rem; font-weight: 700; }
+  .example-card p { color: #475569; font-size: 0.9rem; padding: 0 1rem 1rem 1rem; line-height: 1.5; }
+  .example-card:hover { transform: translateY(-8px); box-shadow: 0 16px 40px rgba(30, 111, 92, 0.15); }
+  
+  @media (max-width: 768px) { 
+    .predict-wrapper { padding: 1rem; } 
+    .example-grid { grid-template-columns: 1fr; }
+    .predict-showcase { padding: 1.5rem; }
+  }
+`}</style>
     </div>
   );
 }

@@ -3,40 +3,53 @@ import React from "react";
 export default function Logo() {
   return (
     <svg
-      width="45"
-      height="45"
+      width="42"
+      height="42"
       viewBox="0 0 100 100"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ marginRight: "10px" }}
+      style={{ marginRight: "8px" }}
     >
-      {/* Gradient definitions */}
       <defs>
-        <linearGradient id="ecoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#1dd1a1', stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: '#00f5d4', stopOpacity: 1 }} />
+        <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#2ecc71" />
+          <stop offset="100%" stopColor="#1abc9c" />
+        </linearGradient>
+        <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#3498db" />
+          <stop offset="100%" stopColor="#2c3e50" />
         </linearGradient>
       </defs>
 
-      {/* Main Circle Background */}
-      <circle cx="50" cy="50" r="48" fill="none" stroke="url(#ecoGradient)" strokeWidth="2" opacity="0.8" />
-      
-      {/* Leaf 1 - Top */}
-      <ellipse cx="50" cy="20" rx="10" ry="15" fill="url(#ecoGradient)" opacity="0.9" transform="rotate(-30 50 20)" />
-      
-      {/* Leaf 2 - Top Right */}
-      <ellipse cx="70" cy="28" rx="10" ry="15" fill="url(#ecoGradient)" opacity="0.85" transform="rotate(30 70 28)" />
-      
-      {/* Leaf 3 - Bottom Right */}
-      <ellipse cx="72" cy="52" rx="10" ry="15" fill="url(#ecoGradient)" opacity="0.85" transform="rotate(80 72 52)" />
-      
-      {/* Center Circle */}
-      <circle cx="50" cy="50" r="20" fill="none" stroke="url(#ecoGradient)" strokeWidth="2" opacity="0.7" />
-      
-      {/* Center Dot */}
-      <circle cx="50" cy="50" r="6" fill="url(#ecoGradient)" />
-      
-      {/* Recycle Arrow Symbol */}
-      <path d="M 40 35 L 35 45 L 42 42 M 60 35 L 65 45 L 58 42 M 50 60 L 50 70" stroke="url(#ecoGradient)" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* Outer circle ring */}
+      <circle cx="50" cy="50" r="46" stroke="url(#leafGrad)" strokeWidth="2.5" fill="none" />
+
+      {/* Leaf shape */}
+      <path
+        d="M50 20 C35 30, 28 48, 40 65 C52 82, 70 72, 72 55 C74 38, 60 28, 50 20Z"
+        fill="url(#leafGrad)"
+        opacity="0.9"
+      />
+
+      {/* Leaf vein */}
+      <path
+        d="M50 25 L50 58"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.6"
+      />
+
+      {/* Stylized eye (vision) inside leaf */}
+      <circle cx="56" cy="48" r="8" fill="white" />
+      <circle cx="58" cy="48" r="4" fill="url(#eyeGrad)" />
+      <circle cx="59" cy="47" r="1.5" fill="white" />
+
+      {/* Small decorative dots (eco particles) */}
+      <circle cx="35" cy="38" r="2" fill="#2ecc71" opacity="0.6" />
+      <circle cx="68" cy="68" r="2" fill="#1abc9c" opacity="0.6" />
+      <circle cx="30" cy="65" r="1.5" fill="#2ecc71" opacity="0.5" />
     </svg>
   );
 }

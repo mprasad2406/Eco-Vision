@@ -1,134 +1,88 @@
-﻿:root {
-  --primary: #1dd1a1;
-  --primary-dark: #16a085;
-  --primary-light: #00f5d4;
-  --secondary: #0f2a47;
-  --bg-dark: #0a0e27;
-  --bg-darker: #081523;
-  --bg-card: rgba(30, 41, 59, 0.6);
-  --text-primary: #e8eef5;
-  --text-secondary: #cbd5e0;
-  --text-muted: #a8b4c8;
-  --border: rgba(29, 209, 161, 0.2);
-  --border-hover: rgba(29, 209, 161, 0.4);
+import React from "react";
+
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Landing from "./pages/Landing";
+import Home from "./pages/Home";
+import Predict from "./pages/Predict";
+import Categories from "./pages/Categories";
+import Stats from "./pages/Stats";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+
+function App() {
+  return (<Router> <Routes> <Route path="/" element= {
+      <Landing />
+    }
+
+    /> <Route path="/*"
+    element= {
+      <> <Navbar /> <div className="app-main" > <Routes> <Route path="/home" element= {
+        <Home />
+      }
+
+      /> <Route path="/predict" element= {
+        <Predict />
+      }
+
+      /> <Route path="/categories" element= {
+        <Categories />
+      }
+
+      /> <Route path="/stats" element= {
+        <Stats />
+      }
+
+      /> <Route path="/about" element= {
+        <About />
+      }
+
+      /> <Route path="/contact" element= {
+        <Contact />
+      }
+
+      /> </Routes> </div> </>
+    }
+
+    /> </Routes> <style> {
+      ` * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+        background: linear-gradient(135deg, #f5f7fc 0%, #eef2f8 100%);
+        color: #1a2a3f;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+
+      @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+
+      .app-main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+      }
+
+      @media (max-width: 768px) {
+        .app-main {
+          padding: 1rem;
+        }
+      }
+
+      `
+    }
+
+    </style> </Router>);
 }
 
-html {
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, var(--bg-dark) 0%, var(--secondary) 50%, var(--bg-darker) 100%);
-  color: var(--text-primary);
-  line-height: 1.6;
-  min-height: 100vh;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  color: var(--primary);
-  font-weight: 700;
-  margin-bottom: 16px;
-  letter-spacing: -0.5px;
-}
-
-p {
-  color: var(--text-secondary);
-  line-height: 1.8;
-}
-
-a {
-  color: var(--primary);
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-a:hover {
-  color: var(--primary-light);
-}
-
-.btn, button {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-}
-
-.btn-primary, .btn-predict {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-  color: white;
-  box-shadow: 0 8px 16px rgba(29, 209, 161, 0.3);
-}
-
-.btn-primary:hover, .btn-predict:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(29, 209, 161, 0.4);
-}
-
-.btn-secondary {
-  background: rgba(30, 41, 59, 0.8);
-  color: var(--primary);
-  border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-  border-color: var(--border-hover);
-  background: rgba(30, 41, 59, 1);
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.card, .section {
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(20, 30, 48, 0.8) 100%);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-}
-
-.card:hover, .section:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-8px);
-  box-shadow: 0 16px 32px rgba(29, 209, 161, 0.15);
-}
-
-.grid {
-  display: grid;
-  gap: 24px;
-}
-
-.grid-2 {
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-}
-
-.grid-3 {
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-}
-
-.grid-4 {
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-}
-
-@media (max-width: 768px) {
-  .grid-2, .grid-3, .grid-4 {
-    grid-template-columns: 1fr;
-  }
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Inter'; background: linear-gradient(135deg, #0a0e27 0%, #0f2a47 50%, #081523 100%); color: #e8eef5; }
-h1, h2, h3 { color: #1dd1a1; font-weight: 700; }
+export default App;

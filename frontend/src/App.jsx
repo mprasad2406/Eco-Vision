@@ -1,7 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
-
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Predict from "./pages/Predict";
@@ -9,15 +8,56 @@ import Categories from "./pages/Categories";
 import Stats from "./pages/Stats";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import "./App.css";
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/*" element={<><Navbar /><Routes><Route path="/home" element={<Home />} /><Route path="/predict" element={<Predict />} /><Route path="/categories" element={<Categories />} /><Route path="/stats" element={<Stats />} /><Route path="/about" element={<About />} /><Route path="/contact" element={<Contact />} /></Routes></>} />
+        <Route
+          path="/*"
+          element={
+            <>
+              <Navbar />
+              <div className="app-main">
+                <Routes>
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/predict" element={<Predict />} />
+                  <Route path="/categories" element={<Categories />} />
+                  <Route path="/stats" element={<Stats />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                </Routes>
+              </div>
+            </>
+          }
+        />
       </Routes>
+      <style>{`
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+          background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0f9ff 100%);
+          color: #1e293b;
+          line-height: 1.5;
+          min-height: 100vh;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap');
+        .app-main {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 2rem 1.5rem;
+        }
+        @media (max-width: 768px) {
+          .app-main {
+            padding: 1rem;
+          }
+        }
+      `}</style>
     </Router>
   );
 }
