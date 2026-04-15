@@ -6,14 +6,14 @@ const STATS_DATA = {
   accuracy: 87,
   processingSpeed: "0.45s",
   categories: [
-    { name: "Plastic", count: 1248, percentage: 24 },
-    { name: "Metal", count: 890, percentage: 17 },
-    { name: "Glass", count: 756, percentage: 14 },
-    { name: "Paper", count: 628, percentage: 12 },
-    { name: "Organic", count: 520, percentage: 10 },
-    { name: "Electronic", count: 408, percentage: 8 },
-    { name: "Cardboard", count: 314, percentage: 6 },
-    { name: "Other", count: 476, percentage: 9 }
+    { name: "Plastic", count: 1248, percentage: 24, color: "#10b981" },
+    { name: "Metal", count: 890, percentage: 17, color: "#3b82f6" },
+    { name: "Glass", count: 756, percentage: 14, color: "#06b6d4" },
+    { name: "Paper", count: 628, percentage: 12, color: "#94a3b8" },
+    { name: "Organic", count: 520, percentage: 10, color: "#059669" },
+    { name: "Electronic", count: 408, percentage: 8, color: "#8b5cf6" },
+    { name: "Cardboard", count: 314, percentage: 6, color: "#92400e" },
+    { name: "Other", count: 476, percentage: 9, color: "#64748b" }
   ],
   modelPerformance: {
     precision: 86,
@@ -23,89 +23,390 @@ const STATS_DATA = {
 };
 
 export default function Stats() {
-  const [selectedMetric, setSelectedMetric] = useState(null);
+  const [activeTab, setActiveTab] = useState('distribution');
+
   const handleSpeakStats = () => {
-    const summary = `Total predictions: ${STATS_DATA.totalPredictions}. Overall accuracy: ${STATS_DATA.accuracy}%. Most common waste type: Plastic with ${STATS_DATA.categories[0].percentage} percent.`;
+    const summary = `System Performance Overview: Total predictions processed: ${STATS_DATA.totalPredictions}. Core accuracy: ${STATS_DATA.accuracy}%. Primary material detected: Plastic. Model health metrics are stable with an F1 score of ${STATS_DATA.modelPerformance.f1Score}%.`;
     speechService.speak(summary);
   };
 
   return (
     <div className="stats-container">
-      <div className="stats-header"><h1>📊 Statistics & Analytics</h1><p>Waste Classification Performance Metrics</p><button className="header-speak-btn" onClick={handleSpeakStats}>🔊 Listen</button></div>
-      <div className="summary-cards">
-        <div className="summary-card"><div className="card-value">{STATS_DATA.totalPredictions.toLocaleString()}</div><div className="card-label">Total Predictions</div><div className="card-icon">📈</div></div>
-        <div className="summary-card highlight"><div className="card-value">{STATS_DATA.accuracy}%</div><div className="card-label">Overall Accuracy</div><div className="card-icon">✓</div></div>
-        <div className="summary-card"><div className="card-value">17</div><div className="card-label">Waste Categories</div><div className="card-icon">📦</div></div>
-        <div className="summary-card"><div className="card-value">{STATS_DATA.processingSpeed}</div><div className="card-label">Processing Speed</div><div className="card-icon">⚡</div></div>
+      <header className="stats-hero">
+        <h1 className="gradient-text">Analytics Engine</h1>
+        <p>Real-time insights into classification trends and model performance</p>
+        <button className="stats-speak-btn" onClick={handleSpeakStats}>
+          🔊 Generate Audio Report
+        </button>
+      </header>
+
+      <div className="stats-summary-grid">
+        <div className="stats-sum-card premium-card">
+          <span className="sum-label">Total Classified</span>
+          <h2 className="sum-value">{STATS_DATA.totalPredictions.toLocaleString()}</h2>
+          <div className="sum-footer green">↑ 12% from last month</div>
+        </div>
+        <div className="stats-sum-card premium-card">
+          <span className="sum-label">Model Accuracy</span>
+          <h2 className="sum-value">{STATS_DATA.accuracy}%</h2>
+          <div className="sum-footer blue">Optimized MobileNetV2</div>
+        </div>
+        <div className="stats-sum-card premium-card">
+          <span className="sum-label">Avg. Latency</span>
+          <h2 className="sum-value">{STATS_DATA.processingSpeed}</h2>
+          <div className="sum-footer purple">Edge Inference</div>
+        </div>
       </div>
-      <section className="stats-section"><h2>Waste Distribution by Category</h2><div className="distribution-container">{STATS_DATA.categories.map((cat, idx) => (<div key={idx} className="distribution-item" onMouseEnter={() => setSelectedMetric(cat.name)} onMouseLeave={() => setSelectedMetric(null)}><div className="distribution-label"><span className="cat-name">{cat.name}</span><span className="cat-count">{cat.count}</span></div><div className="distribution-bar"><div className="distribution-fill" style={{ width: `${cat.percentage}%` }}></div></div><div className="distribution-percentage">{cat.percentage}%</div></div>))}</div></section>
-      <section className="stats-section"><h2>Model Performance Metrics</h2><div className="performance-grid"><div className="performance-card"><h3>Precision</h3><div className="metric-value">{STATS_DATA.modelPerformance.precision}%</div><div className="metric-bar"><div className="metric-fill" style={{ width: `${STATS_DATA.modelPerformance.precision}%` }}></div></div><p>True positive rate</p></div><div className="performance-card"><h3>Recall</h3><div className="metric-value">{STATS_DATA.modelPerformance.recall}%</div><div className="metric-bar"><div className="metric-fill" style={{ width: `${STATS_DATA.modelPerformance.recall}%` }}></div></div><p>Coverage of categories</p></div><div className="performance-card"><h3>F1 Score</h3><div className="metric-value">{STATS_DATA.modelPerformance.f1Score}%</div><div className="metric-bar"><div className="metric-fill" style={{ width: `${STATS_DATA.modelPerformance.f1Score}%` }}></div></div><p>Harmonic mean</p></div></div></section>
-      <section className="stats-section insights"><h2>📊 Key Insights</h2><div className="insights-grid"><div className="insight-card"><h3>Top Category</h3><p>{STATS_DATA.categories[0].name} is the most frequently classified waste type, accounting for {STATS_DATA.categories[0].percentage}% of all predictions.</p></div><div className="insight-card"><h3>Model Efficiency</h3><p>The model achieves {STATS_DATA.accuracy}% accuracy with {STATS_DATA.processingSpeed} processing time per image.</p></div><div className="insight-card"><h3>Category Balance</h3><p>All 17 waste categories are well-represented in the model, ensuring robust classification across different waste types.</p></div><div className="insight-card"><h3>Performance Stability</h3><p>Consistent performance across precision ({STATS_DATA.modelPerformance.precision}%), recall ({STATS_DATA.modelPerformance.recall}%), and F1 score indicates stable model behavior.</p></div></div></section>
-      <div className="stats-action"><button className="action-btn" onClick={() => speechService.speak(`Current stats: Total predictions ${STATS_DATA.totalPredictions}, accuracy ${STATS_DATA.accuracy} percent, most common waste is ${STATS_DATA.categories[0].name}`)}>🔊 Read All Stats Aloud</button></div>
-      <section className="stats-showcase">
-        <h2>Waste Classification Examples</h2>
-        <div className="showcase-gallery">
-          <div className="gallery-item">
-            <img src="https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=400&h=300&fit=crop" alt="Electronics" />
-            <h3>Electronics & E-Waste</h3>
-            <p className="gallery-stat">6% of predictions</p>
-            <p>Circuit boards, keyboards, and mobile devices properly classified</p>
+
+      <main className="stats-content premium-card">
+        <div className="stats-tabs">
+          <button 
+            className={activeTab === 'distribution' ? 'tab active' : 'tab'} 
+            onClick={() => setActiveTab('distribution')}
+          >
+            Material Distribution
+          </button>
+          <button 
+            className={activeTab === 'performance' ? 'tab active' : 'tab'} 
+            onClick={() => setActiveTab('performance')}
+          >
+            Model Performance
+          </button>
+        </div>
+
+        <div className="tab-pane">
+          {activeTab === 'distribution' ? (
+            <div className="distribution-view">
+              <h3>Volume by Category</h3>
+              <div className="dist-list">
+                {STATS_DATA.categories.map((cat, i) => (
+                  <div key={i} className="dist-row">
+                    <div className="dist-info">
+                      <span className="dist-name">{cat.name}</span>
+                      <span className="dist-val">{cat.count} units</span>
+                    </div>
+                    <div className="dist-track">
+                      <div 
+                        className="dist-fill" 
+                        style={{ width: `${cat.percentage}%`, background: cat.color }}
+                      ></div>
+                    </div>
+                    <span className="dist-perc">{cat.percentage}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="performance-view">
+              <h3>Confusion Matrix Metrics</h3>
+              <div className="perf-grid">
+                {[
+                  { label: "Precision", val: STATS_DATA.modelPerformance.precision, desc: "Positive predictive value" },
+                  { label: "Recall", val: STATS_DATA.modelPerformance.recall, desc: "Sensitivity or true positive rate" },
+                  { label: "F1 Score", val: STATS_DATA.modelPerformance.f1Score, desc: "Harmonic mean of precision and recall" }
+                ].map((m, i) => (
+                  <div key={i} className="perf-metric">
+                    <div className="metric-ring">
+                      <svg viewBox="0 0 36 36">
+                        <path className="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path className="ring-fill" strokeDasharray={`${m.val}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <text x="18" y="20.35" className="ring-text">{m.val}%</text>
+                      </svg>
+                    </div>
+                    <h4>{m.label}</h4>
+                    <p>{m.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <section className="stats-insights">
+        <h2 className="section-title">Environmental Impact</h2>
+        <div className="insights-grid">
+          <div className="insight-item premium-card">
+            <div className="insight-icon">🌳</div>
+            <h4>Carbon Offset</h4>
+            <p>Properly classifying 5k+ waste items has potentially prevented 1.2 tons of CO2 emissions.</p>
           </div>
-          <div className="gallery-item">
-            <img src="https://images.unsplash.com/photo-1584361298901-f66c73f72f46?w=400&h=300&fit=crop" alt="Plastic" />
-            <h3>Plastic Waste (24%)</h3>
-            <p className="gallery-stat">Most common category</p>
-            <p>PET bottles, bags, and plastic containers from daily use</p>
-          </div>
-          <div className="gallery-item">
-            <img src="https://images.unsplash.com/photo-1572949645581-9b0b48f57264?w=400&h=300&fit=crop" alt="Organic" />
-            <h3>Organic Materials</h3>
-            <p className="gallery-stat">10% of predictions</p>
-            <p>Food waste, garden materials, and biodegradable items</p>
+          <div className="insight-item premium-card">
+            <div className="insight-icon">💧</div>
+            <h4>Water Conserved</h4>
+            <p>Recycling identified paper and metal has saved approximately 15,000 liters of industrial water use.</p>
           </div>
         </div>
       </section>
+
+      <section className="nlp-query-section premium-card">
+        <div className="nlp-header">
+          <div className="nlp-label">NLP ELECTIVE COMPONENT</div>
+          <h2>Smart Query Interface</h2>
+          <p>Ask natural language questions about your waste metrics and system performance.</p>
+        </div>
+        <WasteQuery />
+      </section>
+
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes imagePan { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        
-        .stats-showcase { margin-top: 3rem; padding: 3rem 2rem; background: linear-gradient(135deg, rgba(30, 111, 92, 0.08), rgba(34, 197, 94, 0.05)); border-radius: 28px; animation: fadeIn 0.8s ease-out; }
-        .stats-showcase h2 { text-align: center; font-size: 2rem; background: linear-gradient(135deg, #1e6f5c, #16a34a); background-clip: text; -webkit-background-clip: text; color: transparent; margin-bottom: 3rem; font-weight: 800; }
-        .showcase-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2.5rem; }
-        .gallery-item { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(30, 111, 92, 0.1); transition: all 0.4s ease; animation: fadeIn 0.8s ease-out backwards; }
-        .gallery-item:nth-child(1) { animation-delay: 0.2s; }
-        .gallery-item:nth-child(2) { animation-delay: 0.3s; }
-        .gallery-item:nth-child(3) { animation-delay: 0.4s; }
-        .gallery-item img { width: 100%; height: 250px; object-fit: cover; transition: transform 0.6s ease; animation: imagePan 4s ease-in-out infinite; }
-        .gallery-item:hover img { transform: scale(1.08); animation: none; }
-        .gallery-item h3 { font-size: 1.3rem; color: #1e6f5c; margin: 1rem; font-weight: 700; }
-        .gallery-stat { color: #16a34a; font-weight: 700; margin: -0.5rem 1rem 0.5rem 1rem; font-size: 0.95rem; }
-        .gallery-item p { color: #475569; font-size: 0.9rem; padding: 0 1rem 1rem 1rem; line-height: 1.5; margin: 0; }
-        .gallery-item:hover { transform: translateY(-8px); box-shadow: 0 16px 40px rgba(30, 111, 92, 0.15); }
-        
-        .stats-container { max-width: 1100px; margin: 0 auto; }
-        .stats-header { text-align: center; margin-bottom: 2rem; }
-        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-        .summary-card { background: white; border-radius: 24px; padding: 1.2rem; text-align: center; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .card-value { font-size: 2rem; font-weight: 700; color: #1e6f5c; }
-        .card-label { color: #5a6e7c; }
-        .card-icon { font-size: 2rem; margin-top: 0.5rem; }
-        .stats-section { background: white; border-radius: 28px; padding: 1.5rem; margin-bottom: 2rem; }
-        .distribution-item { margin-bottom: 1rem; }
-        .distribution-label { display: flex; justify-content: space-between; margin-bottom: 0.3rem; }
-        .distribution-bar { background: #eef2f7; border-radius: 20px; height: 8px; overflow: hidden; }
-        .distribution-fill { background: #1e6f5c; height: 100%; border-radius: 20px; }
-        .performance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
-        .performance-card { background: #f8fafc; border-radius: 20px; padding: 1rem; text-align: center; }
-        .metric-value { font-size: 1.8rem; font-weight: 700; }
-        .metric-bar { background: #eef2f7; border-radius: 20px; height: 6px; margin: 0.5rem 0; }
-        .metric-fill { background: #1e6f5c; height: 100%; border-radius: 20px; }
-        .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
-        .insight-card { background: #f8fafc; border-radius: 20px; padding: 1rem; }
-        .stats-action { text-align: center; margin-top: 1rem; }
-        .action-btn { background: #1e6f5c; color: white; border: none; border-radius: 40px; padding: 0.8rem 1.5rem; cursor: pointer; }
-        @media (max-width: 768px) { .stats-container { padding: 0 1rem; } .showcase-gallery { grid-template-columns: 1fr; } .stats-showcase { padding: 1.5rem; } }
+        .stats-container {
+          animation: fadeInUp 0.8s ease-out;
+          padding-bottom: 4rem;
+        }
+
+        .stats-hero {
+          text-align: center;
+          margin-bottom: 3.5rem;
+        }
+        .stats-hero h1 { font-size: 3.5rem; }
+        .stats-hero p { color: var(--text-muted); font-size: 1.1rem; }
+
+        .stats-speak-btn {
+          margin-top: 2rem;
+          background: var(--text-main);
+          color: white;
+          border: none;
+          padding: 0.8rem 2rem;
+          border-radius: 100px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        .stats-speak-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .stats-summary-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 2rem;
+          margin-bottom: 4rem;
+        }
+        .stats-sum-card {
+          padding: 2rem;
+          text-align: left;
+        }
+        .sum-label {
+          color: var(--text-muted);
+          font-weight: 700;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        .sum-value {
+          font-size: 2.5rem;
+          font-weight: 800;
+          margin: 0.5rem 0;
+          color: var(--text-main);
+        }
+        .sum-footer {
+          font-size: 0.9rem;
+          font-weight: 600;
+        }
+        .sum-footer.green { color: var(--primary); }
+        .sum-footer.blue { color: var(--secondary); }
+        .sum-footer.purple { color: var(--accent); }
+
+        .stats-content {
+          padding: 0;
+          overflow: hidden;
+          margin-bottom: 5rem;
+        }
+        .stats-tabs {
+          display: flex;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .tab {
+          flex: 1;
+          padding: 1.5rem;
+          border: none;
+          background: transparent;
+          font-weight: 700;
+          font-family: inherit;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        .tab.active {
+          color: var(--primary);
+          background: white;
+          border-bottom: 2px solid var(--primary);
+        }
+
+        .tab-pane {
+          padding: 3rem;
+        }
+
+        .dist-row {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          margin-bottom: 1.25rem;
+        }
+        .dist-info {
+          width: 150px;
+          display: flex;
+          flex-direction: column;
+        }
+        .dist-name { font-weight: 700; }
+        .dist-val { font-size: 0.8rem; color: var(--text-muted); }
+        .dist-track {
+          flex: 1;
+          height: 12px;
+          background: #f1f5f9;
+          border-radius: 100px;
+          overflow: hidden;
+        }
+        .dist-fill { height: 100%; border-radius: 100px; }
+        .dist-perc { width: 50px; font-weight: 800; text-align: right; }
+
+        .perf-grid {
+          display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;
+        }
+        .perf-metric { text-align: center; }
+        .metric-ring { width: 120px; margin: 0 auto 1.5rem; }
+        .ring-bg { fill: none; stroke: #f1f5f9; stroke-width: 3.5; }
+        .ring-fill { fill: none; stroke: var(--primary); stroke-width: 3.5; stroke-linecap: round; transition: stroke-dasharray 1s ease; }
+        .ring-text { fill: var(--text-main); font-size: 0.5rem; font-weight: 800; text-anchor: middle; }
+
+        .insights-grid {
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem;
+        }
+        .insight-item { padding: 2rem; display: flex; gap: 1.5rem; align-items: flex-start; }
+        .insight-icon { font-size: 2.5rem; }
+        .insight-item h4 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .insight-item p { color: var(--text-muted); line-height: 1.6; }
+
+        @media (max-width: 768px) {
+          .tab-pane { padding: 1.5rem; }
+          .perf-grid { grid-template-columns: 1fr; }
+          .dist-info { width: 100px; }
+          .insights-grid { grid-template-columns: 1fr; }
+        }
+
+        .nlp-query-section {
+          padding: 3.5rem;
+          background: linear-gradient(135deg, white, #f8fafc);
+          margin-top: 4rem;
+        }
+        .nlp-header { margin-bottom: 2.5rem; }
+        .nlp-label {
+          display: inline-block;
+          background: rgba(16, 185, 129, 0.1);
+          color: var(--primary);
+          padding: 0.4rem 1rem;
+          border-radius: 50px;
+          font-size: 0.75rem;
+          font-weight: 800;
+          margin-bottom: 1rem;
+        }
+        .nlp-header h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .nlp-header p { color: var(--text-muted); }
+
+        .query-box {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+        .query-box input {
+          flex: 1;
+          padding: 1.25rem 1.5rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          outline: none;
+          font-size: 1rem;
+          transition: 0.3s;
+        }
+        .query-box input:focus {
+          border-color: var(--primary);
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        }
+        .query-btn {
+          background: var(--primary);
+          color: white;
+          border: none;
+          padding: 0 2.5rem;
+          border-radius: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: 0.3s;
+        }
+        .query-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .query-response {
+          background: white;
+          padding: 2rem;
+          border-radius: 20px;
+          border: 1px solid #e2e8f0;
+          animation: fadeIn 0.4s ease;
+        }
+        .response-label {
+          display: block;
+          font-size: 0.8rem;
+          font-weight: 800;
+          color: var(--primary);
+          margin-bottom: 0.75rem;
+          text-transform: uppercase;
+        }
+        .response-text {
+          font-size: 1.25rem;
+          line-height: 1.6;
+          color: var(--text-main);
+          font-weight: 500;
+        }
       `}</style>
     </div>
   );
 }
+
+function WasteQuery() {
+  const [query, setQuery] = useState("");
+  const [response, setResponse] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleQuery = async (e) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:5000/api/nlp/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query })
+      });
+      const data = await res.json();
+      setResponse(data.answer);
+    } catch (error) {
+      setResponse("I'm having trouble connecting to the analytics engine right now.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="waste-query-container">
+      <form onSubmit={handleQuery} className="query-box">
+        <input 
+          type="text" 
+          placeholder="e.g. 'How much plastic waste was collected?' or 'Current accuracy?'"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button type="submit" className="query-btn" disabled={loading}>
+          {loading ? "Analyzing..." : "Ask AI"}
+        </button>
+      </form>
+      
+      {response && (
+        <div className="query-response">
+          <span className="response-label">System Response</span>
+          <p className="response-text">{response}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+

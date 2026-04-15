@@ -12,7 +12,6 @@ export default function Predict() {
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Handle image upload
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -26,7 +25,6 @@ export default function Predict() {
     }
   };
 
-  // Make prediction
   const handlePredict = async () => {
     if (!image) {
       setError("Please upload an image first");
@@ -51,7 +49,6 @@ export default function Predict() {
     }
   };
 
-  // Start camera
   const handleStartCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -65,7 +62,6 @@ export default function Predict() {
     }
   };
 
-  // Capture from camera
   const handleCapturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext("2d");
@@ -87,7 +83,6 @@ export default function Predict() {
     }
   };
 
-  // Stop camera
   const handleStopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
@@ -95,7 +90,6 @@ export default function Predict() {
     setCameraActive(false);
   };
 
-  // Clear all
   const handleClear = () => {
     setImage(null);
     setPreview(null);
@@ -108,7 +102,6 @@ export default function Predict() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Get disposal tips
   const getDisposalTips = (category) => {
     const tips = {
       Plastic: "♻️ Rinse and place in recyclables. Keep plastic bags separate.",
@@ -134,228 +127,389 @@ export default function Predict() {
 
   return (
     <div className="predict-container">
-      <div className="predict-wrapper">
-        {/* Header */}
-        <div className="predict-header">
-          <h1>🗑️ Waste Classifier</h1>
-          <p>Smart waste classification using deep learning</p>
-          <div className="predict-subtitle">Upload or capture an image to get started</div>
-        </div>
+      <div className="predict-header">
+        <h1 className="gradient-text">Waste Classifier</h1>
+        <p>Intelligent material recognition for a sustainable future</p>
+      </div>
 
-        {/* Upload Section */}
-        {!preview && !loading && !prediction && (
-          <div className="upload-section">
-            <div className="upload-box" onClick={() => fileInputRef.current?.click()}>
-              <div className="upload-icon">📸</div>
-              <label className="upload-label">Choose Image or Drag & Drop</label>
-              <p className="upload-description">
-                Supported formats: JPG, PNG, WebP
-              </p>
-              <div className="upload-buttons">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="btn btn-primary"
-                >
-                  📁 Browse Files
-                </button>
-                <button onClick={handleStartCamera} className="btn btn-secondary">
-                  📷 Use Camera
-                </button>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                style={{ display: "none" }}
-              />
+      <div className="predict-main-card premium-card">
+        {!preview && !loading && !prediction && !cameraActive && (
+          <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
+            <div className="upload-icon-wrapper">
+              <span className="icon">▲</span>
             </div>
+            <h2>Upload Waste Image</h2>
+            <p>Drag and drop your photo here or <span className="browse-text">browse files</span></p>
+            <div className="upload-actions">
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleStartCamera(); }} 
+                className="predict-btn secondary"
+              >
+                📷 Use Camera
+              </button>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ display: "none" }}
+            />
           </div>
         )}
 
-        {/* Camera Section */}
         {cameraActive && (
-          <div className="upload-section">
-            <div className="camera-section">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                style={{ width: "100%", borderRadius: "12px" }}
-              />
-              <canvas ref={canvasRef} style={{ display: "none" }} width={224} height={224} />
-              <div className="camera-buttons">
-                <button onClick={handleCapturePhoto} className="btn btn-success">
-                  📸 Capture Photo
-                </button>
-                <button onClick={handleStopCamera} className="btn btn-danger">
-                  ✕ Cancel Camera
-                </button>
-              </div>
+          <div className="camera-view">
+            <video ref={videoRef} autoPlay playsInline className="video-stream" />
+            <canvas ref={canvasRef} style={{ display: "none" }} width={224} height={224} />
+            <div className="camera-controls">
+              <button onClick={handleCapturePhoto} className="predict-btn primary">📸 Capture</button>
+              <button onClick={handleStopCamera} className="predict-btn danger">✕ Cancel</button>
             </div>
           </div>
         )}
 
-        {/* Preview & Results */}
-        {(preview || loading || error) && (
-          <div className="predict-content">
-            {/* Error Message */}
-            {error && (
-              <div className="error-message">
-                <p>❌ {error}</p>
-              </div>
-            )}
-
-            {/* Preview & Input */}
+        {(preview || loading || error) && !prediction && (
+          <div className="preview-view">
+            {error && <div className="error-badge">❌ {error}</div>}
             {preview && (
-              <div className="preview-section">
-                <div className="preview-container">
-                  <img src={preview} alt="Waste" className="preview-image" />
-                  <div className="action-buttons">
-                    <button
-                      onClick={handlePredict}
-                      disabled={loading}
-                      className="btn btn-predict"
-                    >
-                      {loading ? "⏳ Analyzing..." : "🚀 Analyze Image"}
-                    </button>
-                    <button onClick={handleClear} className="btn btn-clear">
-                      🔄 New Image
-                    </button>
-                  </div>
+              <div className="preview-container">
+                <img src={preview} alt="Waste preview" className="preview-img" />
+                <div className="preview-actions">
+                  <button 
+                    onClick={handlePredict} 
+                    disabled={loading} 
+                    className="predict-btn primary large"
+                  >
+                    {loading ? "⏳ Analyzing..." : "🚀 Analyze Material"}
+                  </button>
+                  <button onClick={handleClear} className="predict-btn text">New Image</button>
                 </div>
               </div>
             )}
-
-            {/* Loading State */}
             {loading && (
-              <div className="loading-spinner">
-                <div className="spinner"></div>
-                <p>Analyzing waste image...</p>
+              <div className="loader-overlay">
+                <div className="scanner"></div>
+                <p>Decoding material composition...</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Prediction Results */}
         {prediction && !loading && (
-          <div className="predict-content">
-            <div className="results-section">
-              {/* Primary Prediction */}
-              <div className="primary-prediction">
-                <div className="category-badge">
-                  {prediction.primary_class}
+          <div className="results-view">
+            <div className="result-main">
+              <div className="result-category-shell">
+                <span className="result-label">Identified Material</span>
+                <h2 className="result-category">{prediction.primary_class}</h2>
+              </div>
+              <div className="confidence-section">
+                <div className="confidence-header">
+                  <span>Confidence Score</span>
+                  <span>{(prediction.confidence * 100).toFixed(1)}%</span>
                 </div>
-                <p className="confidence-text">
-                  Confidence Score
-                  <strong>{(prediction.confidence * 100).toFixed(1)}%</strong>
-                </p>
-                <div className="confidence-meter">
-                  <div
-                    className="confidence-bar"
-                    style={{
-                      width: `${(prediction.confidence * 100).toFixed(1)}%`,
-                    }}
+                <div className="confidence-track">
+                  <div 
+                    className="confidence-fill" 
+                    style={{ width: `${prediction.confidence * 100}%` }}
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Top Predictions */}
-              <div className="top-predictions">
-                <h3>Top Predictions</h3>
-                <div className="predictions-list">
-                  {prediction.top_predictions.map((pred, idx) => (
-                    <div key={idx} className="prediction-item">
-                      <span className="rank">#{idx + 1}</span>
-                      <span className="class-name">{pred.class}</span>
-                      <span className="confidence">
-                        {(pred.confidence * 100).toFixed(1)}%
-                      </span>
+            <div className="result-details">
+              <div className="tips-box">
+                <h3>♻️ Disposal Guide</h3>
+                <p>{getDisposalTips(prediction.primary_class)}</p>
+              </div>
+              <div className="top-preds">
+                <h3>Alternative Probabilities</h3>
+                <div className="preds-list">
+                  {prediction.top_predictions.slice(0, 3).map((pred, i) => (
+                    <div key={i} className="pred-item">
+                      <span className="pred-name">{pred.class}</span>
+                      <span className="pred-val">{(pred.confidence * 100).toFixed(0)}%</span>
                     </div>
                   ))}
                 </div>
               </div>
+            </div>
 
-              {/* Disposal Tips */}
-              <div className="disposal-tips">
-                <h3>♻️ Disposal Guide</h3>
-                <p>{getDisposalTips(prediction.primary_class)}</p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="action-buttons" style={{ gridColumn: "1 / -1" }}>
-                <button onClick={handleClear} className="btn btn-primary">
-                  🔄 Analyze Another
-                </button>
-              </div>
+            <div className="result-reset">
+              <button onClick={handleClear} className="predict-btn primary">Analyze Another</button>
             </div>
           </div>
         )}
       </div>
-      <section className="predict-showcase">
-        <h2>Example Waste Classifications</h2>
+
+      <section className="predict-examples">
+        <h2 className="section-title">Common Categories</h2>
         <div className="example-grid">
-          <div className="example-card">
-            <img src="https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=400&h=300&fit=crop" alt="Electronics" />
-            <h3>Electronic Waste</h3>
-            <p>Devices like phones, keyboards, and circuit boards</p>
-          </div>
-          <div className="example-card">
-            <img src="https://images.unsplash.com/photo-1572949645581-9b0b48f57264?w=400&h=300&fit=crop" alt="Organic" />
-            <h3>Organic Waste</h3>
-            <p>Biodegradable materials like food and plants</p>
-          </div>
-          <div className="example-card">
-            <img src="https://images.unsplash.com/photo-1584361298901-f66c73f72f46?w=400&h=300&fit=crop" alt="Plastic" />
-            <h3>Plastic Waste</h3>
-            <p>Recyclable plastic bottles and containers</p>
-          </div>
+          {[
+            { img: "https://images.unsplash.com/photo-1559027615-cd2628902d4a", title: "Electronics", desc: "Keyboards, mobiles, PCBs" },
+            { img: "https://images.unsplash.com/photo-1572949645581-9b0b48f57264", title: "Organic", desc: "Food waste, plant materials" },
+            { img: "https://images.unsplash.com/photo-1584361298901-f66c73f72f46", title: "Recyclables", desc: "Plastic, metal, glass" }
+          ].map((item, i) => (
+            <div key={i} className="example-item premium-card">
+              <img src={`${item.img}?w=400&h=300&fit=crop`} alt={item.title} />
+              <div className="example-info">
+                <h3>{item.title}</h3>
+                <p>{item.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
+
       <style>{`
-  .predict-container { max-width: 900px; margin: 0 auto; }
-  .predict-wrapper { background: white; border-radius: 32px; padding: 2rem; box-shadow: 0 12px 30px rgba(0,0,0,0.05); }
-  .predict-header { text-align: center; margin-bottom: 2rem; }
-  .upload-section { text-align: center; }
-  .upload-box { border: 2px dashed #dce4ec; border-radius: 32px; padding: 2rem; cursor: pointer; transition: all 0.2s; }
-  .upload-box:hover { border-color: #1e6f5c; background: #f8fafc; }
-  .btn { padding: 0.6rem 1.2rem; border-radius: 40px; border: none; cursor: pointer; margin: 0.3rem; font-size: 0.9rem; }
-  .btn-primary { background: #1e6f5c; color: white; }
-  .btn-secondary { background: #eef2f7; color: #1a2a3f; }
-  .preview-image { max-width: 100%; border-radius: 24px; margin: 1rem 0; }
-  .results-section { margin-top: 2rem; }
-  .primary-prediction { background: #f0f9f4; border-radius: 24px; padding: 1.5rem; text-align: center; }
-  .category-badge { font-size: 1.8rem; font-weight: 700; color: #1e6f5c; }
-  .confidence-meter { background: #eef2f7; border-radius: 20px; height: 8px; margin: 1rem 0; }
-  .confidence-bar { background: #1e6f5c; height: 100%; border-radius: 20px; }
-  .top-predictions { margin-top: 1.5rem; }
-  .prediction-item { display: flex; justify-content: space-between; padding: 0.5rem; border-bottom: 1px solid #eef2f7; }
-  .disposal-tips { background: #fff8e7; border-radius: 20px; padding: 1rem; margin: 1rem 0; }
-  .loading-spinner { text-align: center; padding: 2rem; }
-  .spinner { border: 4px solid #eef2f7; border-top: 4px solid #1e6f5c; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
-  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes imagePan { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-  
-  .predict-showcase { margin-top: 4rem; padding: 3rem 2rem; background: linear-gradient(135deg, rgba(30, 111, 92, 0.08), rgba(34, 197, 94, 0.05)); border-radius: 28px; animation: fadeIn 0.8s ease-out; }
-  .predict-showcase h2 { text-align: center; font-size: 2rem; background: linear-gradient(135deg, #1e6f5c, #16a34a); background-clip: text; -webkit-background-clip: text; color: transparent; margin-bottom: 3rem; font-weight: 800; }
-  .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
-  .example-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(30, 111, 92, 0.1); transition: all 0.4s ease; animation: fadeIn 0.8s ease-out backwards; }
-  .example-card:nth-child(1) { animation-delay: 0.2s; }
-  .example-card:nth-child(2) { animation-delay: 0.3s; }
-  .example-card:nth-child(3) { animation-delay: 0.4s; }
-  .example-card img { width: 100%; height: 250px; object-fit: cover; transition: transform 0.6s ease; animation: imagePan 4s ease-in-out infinite; }
-  .example-card:hover img { transform: scale(1.08); animation: none; }
-  .example-card h3 { font-size: 1.3rem; color: #1e6f5c; margin: 1rem; font-weight: 700; }
-  .example-card p { color: #475569; font-size: 0.9rem; padding: 0 1rem 1rem 1rem; line-height: 1.5; }
-  .example-card:hover { transform: translateY(-8px); box-shadow: 0 16px 40px rgba(30, 111, 92, 0.15); }
-  
-  @media (max-width: 768px) { 
-    .predict-wrapper { padding: 1rem; } 
-    .example-grid { grid-template-columns: 1fr; }
-    .predict-showcase { padding: 1.5rem; }
-  }
-`}</style>
+        .predict-container {
+          max-width: 1000px;
+          margin: 0 auto;
+          animation: fadeInUp 0.8s ease-out;
+        }
+
+        .predict-header {
+          text-align: center;
+          margin-bottom: 3rem;
+        }
+        .predict-header h1 {
+          font-size: 3rem;
+          margin-bottom: 0.5rem;
+        }
+        .predict-header p {
+          color: var(--text-muted);
+          font-size: 1.1rem;
+        }
+
+        .predict-main-card {
+          padding: 3rem;
+          min-height: 400px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+
+        .upload-zone {
+          text-align: center;
+          padding: 4rem 2rem;
+          border: 2px dashed rgba(16, 185, 129, 0.2);
+          border-radius: 20px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        .upload-zone:hover {
+          background: rgba(16, 185, 129, 0.05);
+          border-color: var(--primary);
+        }
+
+        .upload-icon-wrapper {
+          width: 80px;
+          height: 80px;
+          background: rgba(16, 185, 129, 0.1);
+          color: var(--primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          margin: 0 auto 1.5rem;
+          font-size: 2rem;
+        }
+
+        .browse-text {
+          color: var(--primary);
+          font-weight: 700;
+          text-decoration: underline;
+        }
+
+        .upload-actions {
+          margin-top: 2rem;
+        }
+
+        .predict-btn {
+          padding: 0.8rem 2rem;
+          border-radius: 100px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: none;
+          font-family: inherit;
+        }
+        .predict-btn.primary {
+          background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+          color: white;
+          box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+        }
+        .predict-btn.secondary {
+          background: white;
+          color: var(--text-main);
+          border: 1px solid rgba(0,0,0,0.1);
+        }
+        .predict-btn.danger {
+          background: #ef4444;
+          color: white;
+        }
+        .predict-btn.text {
+          background: transparent;
+          color: var(--text-muted);
+        }
+        .predict-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+
+        .camera-view {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        .video-stream {
+          width: 100%;
+          max-width: 500px;
+          border-radius: 20px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .preview-view {
+          text-align: center;
+        }
+        .preview-img {
+          max-width: 100%;
+          max-height: 400px;
+          border-radius: 20px;
+          margin-bottom: 2rem;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .results-view {
+          display: flex;
+          flex-direction: column;
+          gap: 2.5rem;
+        }
+        .result-main {
+          text-align: center;
+        }
+        .result-label {
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--primary);
+        }
+        .result-category {
+          font-size: 3rem;
+          font-weight: 800;
+          margin: 0.5rem 0 1.5rem;
+        }
+
+        .confidence-section {
+          max-width: 400px;
+          margin: 0 auto;
+        }
+        .confidence-header {
+          display: flex;
+          justify-content: space-between;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: var(--text-muted);
+        }
+        .confidence-track {
+          height: 12px;
+          background: #e2e8f0;
+          border-radius: 100px;
+          overflow: hidden;
+        }
+        .confidence-fill {
+          height: 100%;
+          background: linear-gradient(to right, var(--primary), var(--secondary));
+          border-radius: 100px;
+          animation: slideInLeft 1s ease-out;
+        }
+
+        .result-details {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2rem;
+        }
+        .tips-box {
+          background: rgba(16, 185, 129, 0.05);
+          padding: 1.5rem;
+          border-radius: 20px;
+          border: 1px solid rgba(16, 185, 129, 0.1);
+        }
+        .tips-box h3 {
+          margin-bottom: 0.75rem;
+          color: var(--primary-dark);
+        }
+
+        .top-preds h3 {
+          font-size: 1rem;
+          margin-bottom: 1rem;
+          color: var(--text-muted);
+        }
+        .preds-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .pred-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 0.5rem 0;
+          border-bottom: 1px solid #f1f5f9;
+          font-weight: 600;
+        }
+
+        .result-reset {
+          text-align: center;
+        }
+
+        .predict-examples {
+          margin-top: 5rem;
+        }
+        .section-title {
+          font-size: 2rem;
+          font-weight: 800;
+          margin-bottom: 2.5rem;
+          text-align: center;
+        }
+        .example-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 2.5rem;
+        }
+        .example-item {
+          overflow: hidden;
+          padding: 0;
+        }
+        .example-item img {
+          width: 100%;
+          height: 200px;
+          object-fit: cover;
+        }
+        .example-info {
+          padding: 1.5rem;
+        }
+        .example-info h3 {
+          margin-bottom: 0.5rem;
+          color: var(--primary-dark);
+        }
+        .example-info p {
+          font-size: 0.9rem;
+          color: var(--text-muted);
+        }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+          .predict-main-card { padding: 1.5rem; }
+          .result-details { grid-template-columns: 1fr; }
+          .result-category { font-size: 2rem; }
+        }
+      `}</style>
     </div>
   );
 }

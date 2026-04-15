@@ -2,23 +2,23 @@ import React, { useState } from "react";
 import { speechService } from "../utils/speechService";
 
 const WASTE_CATEGORIES = [
-  { id: 1, name: "Battery", icon: "🔋", color: "#e74c3c", description: "Rechargeable and single-use batteries", examples: "AA batteries, phone batteries, power banks"},
-  { id: 2, name: "Keyboard", icon: "⌨️", color: "#3498db", description: "Computer and electronic keyboards", examples: "USB keyboards, wireless keyboards, mechanical keyboards" },
-  { id: 3, name: "Mobile", icon: "📱", color: "#2ecc71", description: "Smartphones and mobile devices", examples: "Smartphones, tablets, smartwatches" },
-  { id: 4, name: "PCB", icon: "🔌", color: "#9b59b6", description: "Printed circuit boards and components", examples: "Circuit boards, microchips, processors" },
-  { id: 5, name: "Glass", icon: "🥤", color: "#1abc9c", description: "Glass bottles and containers", examples: "Beer bottles, wine bottles, jars" },
-  { id: 6, name: "Metal", icon: "⚙️", color: "#34495e", description: "Metal cans, foil, and metal items", examples: "Aluminum cans, steel cans, metal scraps" },
-  { id: 7, name: "Plastic", icon: "🛍️", color: "#f39c12", description: "Plastic bottles and plastic packaging", examples: "PET bottles, plastic bags, plastic containers" },
-  { id: 8, name: "Paper", icon: "📄", color: "#95a5a6", description: "Paper, cardboard, and paper products", examples: "Newspapers, cardboard boxes, paper bags" },
-  { id: 9, name: "Trash", icon: "🗑️", color: "#c0392b", description: "General waste and non-recyclable items", examples: "Broken plastics, food waste, mixed materials" },
-  { id: 10, name: "Printer", icon: "🖨️", color: "#16a085", description: "Printers and printing equipment", examples: "Ink jet printers, laser printers, printer cartridges" },
-  { id: 11, name: "Mouse", icon: "🖱️", color: "#27ae60", description: "Computer mice and input devices", examples: "Wireless mouse, optical mouse, trackpads" },
-  { id: 12, name: "Television", icon: "📺", color: "#8e44ad", description: "Old television sets and displays", examples: "CRT TVs, LED TVs, monitors" },
-  { id: 13, name: "Microwave", icon: "🌊", color: "#c0392b", description: "Microwave ovens and heating appliances", examples: "Microwave ovens, toasters, kettles" },
-  { id: 14, name: "Washing Machine", icon: "🧺", color: "#3498db", description: "Washing machines and laundry equipment", examples: "Front-load washers, top-load washers, dryers" },
-  { id: 15, name: "Cardboard", icon: "📦", color: "#d35400", description: "Cardboard boxes and corrugated materials", examples: "Shipping boxes, delivery boxes, egg cartons" },
-  { id: 16, name: "Organic", icon: "🌱", color: "#27ae60", description: "Food waste and organic materials", examples: "Fruit peels, vegetable scraps, leaves" },
-  { id: 17, name: "Player", icon: "🎮", color: "#2980b9", description: "Media players and gaming devices", examples: "DVD players, gaming consoles, Blu-ray players" }
+  { id: 1, name: "Battery", icon: "🔋", color: "#ef4444", description: "Rechargeable and single-use batteries", examples: "AA, phone batteries, power banks"},
+  { id: 2, name: "Keyboard", icon: "⌨️", color: "#3b82f6", description: "Computer and electronic keyboards", examples: "USB, wireless, mechanical" },
+  { id: 3, name: "Mobile", icon: "📱", color: "#10b981", description: "Smartphones and mobile devices", examples: "Phones, tablets, smartwatches" },
+  { id: 4, name: "PCB", icon: "🔌", color: "#8b5cf6", description: "Printed circuit boards and components", examples: "Circuits, microchips, processors" },
+  { id: 5, name: "Glass", icon: "🥤", color: "#06b6d4", description: "Glass bottles and containers", examples: "Bottles, jars, glassware" },
+  { id: 6, name: "Metal", icon: "⚙️", color: "#475569", description: "Metal cans, foil, and metal items", examples: "Aluminium cans, steel, scrap" },
+  { id: 7, name: "Plastic", icon: "🛍️", color: "#f59e0b", description: "Plastic bottles and packaging", examples: "PET bottles, bags, containers" },
+  { id: 8, name: "Paper", icon: "📄", color: "#94a3b8", description: "Paper and cardboard products", examples: "Newspapers, boxes, paper bags" },
+  { id: 9, name: "Trash", icon: "🗑️", color: "#451a03", description: "General non-recyclable waste", examples: "Mixed materials, soiled items" },
+  { id: 10, name: "Printer", icon: "🖨️", color: "#0d9488", description: "Printers and printing equipment", examples: "Inkjets, lasers, cartridges" },
+  { id: 11, name: "Mouse", icon: "🖱️", color: "#16a34a", description: "Computer mice and input devices", examples: "Wireless, optical, trackpads" },
+  { id: 12, name: "Television", icon: "📺", color: "#6366f1", description: "Television sets and displays", examples: "LED, CRT, monitors" },
+  { id: 13, name: "Microwave", icon: "🌊", color: "#dc2626", description: "Microwave ovens and appliances", examples: "Microwaves, toasters" },
+  { id: 14, name: "Washing Machine", icon: "🧺", color: "#2563eb", description: "Laundry equipment", examples: "Washers, dryers" },
+  { id: 15, name: "Cardboard", icon: "📦", color: "#92400e", description: "Cardboard and corrugated board", examples: "Delivery boxes, cartons" },
+  { id: 16, name: "Organic", icon: "🌱", color: "#059669", description: "Food waste and organic materials", examples: "Peels, scraps, leaves" },
+  { id: 17, name: "Player", icon: "🎮", color: "#4f46e5", description: "Media and gaming devices", examples: "Consoles, DVD players" }
 ];
 
 export default function Categories() {
@@ -35,97 +35,322 @@ export default function Categories() {
     speechService.speak(`${category.name}: ${category.description}`);
   };
 
-  const handleClearSearch = () => setSearchTerm("");
-
   return (
     <div className="categories-container">
-      <div className="categories-header"><h1>📦 Waste Categories</h1><p>Explore all 17 waste types recognized by Eco-Vision</p></div>
-      <div className="search-section">
-        <input type="text" placeholder="Search categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
-        {searchTerm && <button className="clear-btn" onClick={handleClearSearch}>✕</button>}
-      </div>
+      <header className="categories-hero">
+        <h1 className="gradient-text">Waste Categories</h1>
+        <p>A comprehensive guide to material classification and recycling</p>
+        
+        <div className="search-bar premium-card">
+          <span className="search-icon">🔍</span>
+          <input 
+            type="text" 
+            placeholder="Search categories (e.g. plastic, PCB)..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+          />
+          {searchTerm && (
+            <button className="clear-search" onClick={() => setSearchTerm("")}>✕</button>
+          )}
+        </div>
+      </header>
+
       <div className="categories-grid">
-        {filteredCategories.map((category) => (
-          <div key={category.id} className={`category-card ${selectedCategory?.id === category.id ? "active" : ""}`} onClick={() => handleCategoryClick(category)} style={{ borderLeftColor: category.color }}>
-            <div className="category-icon">{category.icon}</div>
-            <h3 className="category-name">{category.name}</h3>
-            <p className="category-description">{category.description}</p>
-            <div className="category-hover">View Details →</div>
+        {filteredCategories.map((cat) => (
+          <div 
+            key={cat.id} 
+            className={`cat-card premium-card ${selectedCategory?.id === cat.id ? 'active' : ''}`}
+            onClick={() => handleCategoryClick(cat)}
+            style={{'--accent-color': cat.color}}
+          >
+            <div className="cat-icon-blob">{cat.icon}</div>
+            <h3>{cat.name}</h3>
+            <p>{cat.description}</p>
+            <span className="view-link">Details →</span>
           </div>
         ))}
       </div>
+
       {selectedCategory && (
-        <div className="selected-category">
-          <div className="details-header"><span className="details-icon">{selectedCategory.icon}</span><div className="details-info"><h2>{selectedCategory.name}</h2><p className="details-description">{selectedCategory.description}</p></div><button className="close-btn" onClick={() => setSelectedCategory(null)}>✕</button></div>
-          <div className="details-content">
-            <div className="detail-section"><h3>📋 Description</h3><p>{selectedCategory.description}</p></div>
-            <div className="detail-section"><h3>🔍 Examples</h3><p>{selectedCategory.examples}</p></div>
-            <div className="detail-section"><h3>♻️ Recycling Info</h3><p>{selectedCategory.name} waste should be handled according to local recycling guidelines. Please check with your local waste management facility for proper disposal methods.</p></div>
-            <button className="explain-btn" onClick={() => speechService.speak(`${selectedCategory.name}: ${selectedCategory.description}. Examples include ${selectedCategory.examples}`)}>🔊 Listen to Details</button>
+        <div className="detail-modal-overlay" onClick={() => setSelectedCategory(null)}>
+          <div className="detail-modal premium-card" onClick={e => e.stopPropagation()}>
+            <button className="close-modal" onClick={() => setSelectedCategory(null)}>✕</button>
+            <div className="modal-header">
+              <div className="modal-icon">{selectedCategory.icon}</div>
+              <div className="modal-title-group">
+                <h2 style={{color: selectedCategory.color}}>{selectedCategory.name}</h2>
+                <p>Material Classification Profile</p>
+              </div>
+            </div>
+            <div className="modal-body">
+              <div className="info-section">
+                <h4>Description</h4>
+                <p>{selectedCategory.description}</p>
+              </div>
+              <div className="info-section">
+                <h4>Common Examples</h4>
+                <div className="example-tags">
+                  {selectedCategory.examples.split(',').map((ex, i) => (
+                    <span key={i} className="ex-tag">{ex.trim()}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="info-section">
+                <h4>Recycling Guidelines</h4>
+                <p>Ensure these items are sorted correctly. {selectedCategory.name} specifically requires disposal at authorized facilities to minimize environmental footprint.</p>
+              </div>
+              <button 
+                className="modal-audio-btn"
+                onClick={() => speechService.speak(`${selectedCategory.name}: ${selectedCategory.description}. Examples include ${selectedCategory.examples}`)}
+              >
+                🔊 Audio Overview
+              </button>
+            </div>
           </div>
         </div>
       )}
-      {filteredCategories.length === 0 && <div className="no-results"><p>No categories found matching "{searchTerm}"</p><button onClick={handleClearSearch}>Clear Search</button></div>}
-      <section className="category-showcase">
-        <h2>Real Examples of E-Waste Categories</h2>
-        <div className="showcase-grid">
-          <div className="showcase-item">
-            <img src="https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=400&h=300&fit=crop" alt="Electronic components" />
-            <h3>Electronic Components</h3>
-            <p>PCBs, circuits, and microchips for proper e-waste recycling</p>
-          </div>
-          <div className="showcase-item">
-            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=300&fit=crop" alt="Batteries and power" />
-            <h3>Batteries & Power</h3>
-            <p>Various battery types requiring specialized handling</p>
-          </div>
-          <div className="showcase-item">
-            <img src="https://images.unsplash.com/photo-1550454897-eb2e8b0ed6b0?w=400&h=300&fit=crop" alt="Mobile devices" />
-            <h3>Mobile & Devices</h3>
-            <p>Smartphones, tablets, and portable electronic devices</p>
-          </div>
+
+      {filteredCategories.length === 0 && (
+        <div className="no-results premium-card">
+          <h3>No matches found</h3>
+          <p>Try adjusting your search terms</p>
+          <button onClick={() => setSearchTerm("")}>Reset Search</button>
         </div>
-      </section>
+      )}
+
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes imagePan { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        
-        .category-showcase { margin-top: 5rem; padding: 3rem 2rem; background: linear-gradient(135deg, rgba(30, 111, 92, 0.08), rgba(34, 197, 94, 0.05)); border-radius: 28px; animation: fadeIn 0.8s ease-out 1.2s backwards; }
-        .category-showcase h2 { text-align: center; font-size: 2rem; background: linear-gradient(135deg, #1e6f5c, #16a34a); background-clip: text; -webkit-background-clip: text; color: transparent; margin-bottom: 3rem; font-weight: 800; }
-        .showcase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
-        .showcase-item { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(30, 111, 92, 0.1); transition: all 0.4s ease; animation: fadeIn 0.8s ease-out backwards; }
-        .showcase-item:nth-child(1) { animation-delay: 1.3s; }
-        .showcase-item:nth-child(2) { animation-delay: 1.4s; }
-        .showcase-item:nth-child(3) { animation-delay: 1.5s; }
-        .showcase-item img { width: 100%; height: 250px; object-fit: cover; transition: transform 0.6s ease; animation: imagePan 4s ease-in-out infinite; }
-        .showcase-item:hover img { transform: scale(1.08); animation: none; }
-        .showcase-item h3 { font-size: 1.3rem; color: #1e6f5c; margin: 1rem; font-weight: 700; }
-        .showcase-item p { color: #475569; font-size: 0.9rem; padding: 0 1rem 1rem 1rem; line-height: 1.5; }
-        .showcase-item:hover { transform: translateY(-8px); box-shadow: 0 16px 40px rgba(30, 111, 92, 0.15); }
-        
-        .categories-container { max-width: 1200px; margin: 0 auto; }
-        .categories-header { text-align: center; margin-bottom: 2rem; }
-        .search-section { position: relative; max-width: 400px; margin: 0 auto 2rem; }
-        .search-input { width: 100%; padding: 0.8rem 2rem 0.8rem 1rem; border: 1px solid #dce4ec; border-radius: 60px; font-size: 1rem; }
-        .clear-btn { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; }
-        .categories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
-        .category-card { background: white; border-radius: 20px; padding: 1.2rem; border-left: 4px solid; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .category-card:hover { transform: translateY(-3px); box-shadow: 0 12px 20px rgba(0,0,0,0.08); }
-        .category-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-        .category-name { margin: 0.5rem 0; font-size: 1.2rem; }
-        .category-description { color: #5a6e7c; font-size: 0.85rem; }
-        .category-hover { margin-top: 0.5rem; font-size: 0.8rem; color: #1e6f5c; opacity: 0; transition: opacity 0.2s; }
-        .category-card:hover .category-hover { opacity: 1; }
-        .selected-category { margin-top: 2rem; background: white; border-radius: 28px; padding: 1.5rem; box-shadow: 0 8px 25px rgba(0,0,0,0.05); }
-        .details-header { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: space-between; }
-        .details-icon { font-size: 2.5rem; }
-        .details-info h2 { margin: 0; }
-        .close-btn { background: #eef2f7; border: none; border-radius: 40px; padding: 0.3rem 0.8rem; cursor: pointer; }
-        .detail-section { margin: 1rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid #eef2f7; }
-        .explain-btn { background: #1e6f5c; color: white; border: none; border-radius: 40px; padding: 0.6rem 1.2rem; margin-top: 1rem; cursor: pointer; }
-        .no-results { text-align: center; margin-top: 2rem; }
-        @media (max-width: 768px) { .categories-grid { grid-template-columns: 1fr; } .showcase-grid { grid-template-columns: 1fr; } }
+        .categories-container {
+          animation: fadeInUp 0.8s ease-out;
+        }
+
+        .categories-hero {
+          text-align: center;
+          margin-bottom: 4rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .categories-hero h1 {
+          font-size: 3.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .categories-hero p {
+          color: var(--text-muted);
+          font-size: 1.1rem;
+          margin-bottom: 2.5rem;
+        }
+
+        .search-bar {
+          width: 100%;
+          max-width: 600px;
+          display: flex;
+          align-items: center;
+          padding: 0.5rem 1.5rem;
+          gap: 1rem;
+          border-radius: 100px;
+        }
+        .search-bar input {
+          flex: 1;
+          border: none;
+          background: transparent;
+          padding: 0.75rem 0;
+          font-size: 1.1rem;
+          font-family: inherit;
+          color: inherit;
+          outline: none;
+        }
+        .search-icon {
+          font-size: 1.25rem;
+          opacity: 0.5;
+        }
+        .clear-search {
+          background: #e2e8f0;
+          border: none;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 0.8rem;
+        }
+
+        .categories-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 2rem;
+          margin-bottom: 5rem;
+        }
+
+        .cat-card {
+          padding: 2rem;
+          cursor: pointer;
+          text-align: center;
+          border-top: 4px solid var(--accent-color);
+        }
+        .cat-icon-blob {
+          font-size: 3rem;
+          margin-bottom: 1.5rem;
+          background: white;
+          width: 80px;
+          height: 80px;
+          line-height: 80px;
+          border-radius: 20px;
+          margin: 0 auto 1.5rem;
+          box-shadow: 0 10px 20px rgba(0,0,0,0.03);
+        }
+        .cat-card h3 {
+          font-size: 1.3rem;
+          font-weight: 700;
+          margin-bottom: 0.75rem;
+        }
+        .cat-card p {
+          font-size: 0.9rem;
+          color: var(--text-muted);
+          line-height: 1.6;
+          margin-bottom: 1.5rem;
+        }
+        .view-link {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: var(--primary);
+          opacity: 0;
+          transform: translateY(10px);
+          transition: all 0.3s ease;
+          display: block;
+        }
+        .cat-card:hover .view-link {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        .detail-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.4);
+          backdrop-filter: blur(8px);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          animation: fadeIn 0.3s ease;
+        }
+        .detail-modal {
+          width: 100%;
+          max-width: 600px;
+          padding: 3rem;
+          position: relative;
+          background: white;
+          animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .close-modal {
+          position: absolute;
+          top: 1.5rem;
+          right: 1.5rem;
+          background: #f1f5f9;
+          border: none;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          cursor: pointer;
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: center;
+          gap: 2rem;
+          margin-bottom: 2.5rem;
+        }
+        .modal-icon {
+          font-size: 4rem;
+          background: #f8fafc;
+          width: 100px;
+          height: 100px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 24px;
+        }
+        .modal-title-group h2 {
+          font-size: 2.25rem;
+          font-weight: 800;
+        }
+        .modal-title-group p {
+          color: var(--text-muted);
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          font-size: 0.8rem;
+        }
+
+        .info-section {
+          margin-bottom: 2rem;
+        }
+        .info-section h4 {
+          font-size: 1rem;
+          font-weight: 700;
+          margin-bottom: 0.75rem;
+          color: var(--text-muted);
+        }
+        .example-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+        }
+        .ex-tag {
+          background: #f1f5f9;
+          padding: 0.4rem 1rem;
+          border-radius: 50px;
+          font-size: 0.9rem;
+          font-weight: 600;
+        }
+
+        .modal-audio-btn {
+          width: 100%;
+          background: var(--text-main);
+          color: white;
+          border: none;
+          padding: 1rem;
+          border-radius: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          margin-top: 1rem;
+          transition: transform 0.2s ease;
+        }
+        .modal-audio-btn:hover {
+          transform: scale(1.02);
+        }
+
+        .no-results {
+          text-align: center;
+          padding: 4rem;
+        }
+        .no-results button {
+          margin-top: 1.5rem;
+          background: var(--primary);
+          color: white;
+          border: none;
+          padding: 0.75rem 2rem;
+          border-radius: 100px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.9) translateY(20px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+          .categories-hero h1 { font-size: 2.25rem; }
+          .modal-header { flex-direction: column; text-align: center; gap: 1rem; }
+          .detail-modal { padding: 2rem; }
+        }
       `}</style>
     </div>
   );
-}
+}

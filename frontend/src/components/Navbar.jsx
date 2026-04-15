@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import Logo from "./Logo";
 import { speechService } from "../utils/speechService";
 
@@ -8,6 +8,13 @@ export default function Navbar() {
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
   const [recognition, setRecognition] = useState(null);
   const [isListening, setIsListening] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleSpeechToggle = () => {
     if (!speechService.isSupported()) {
@@ -28,19 +35,14 @@ export default function Navbar() {
       setRecognition(rec);
       setIsSpeechEnabled(true);
     } else {
-      if (recognition) {
-        speechService.stopListening(recognition);
-      }
+      if (recognition) speechService.stopListening(recognition);
       setIsSpeechEnabled(false);
       setIsListening(false);
     }
   };
 
   const handleMicClick = () => {
-    if (!isSpeechEnabled) {
-      alert("Enable speech mode first using the speech button");
-      return;
-    }
+    if (!isSpeechEnabled) return;
     if (!isListening) {
       speechService.startListening(recognition);
       setIsListening(true);
@@ -51,125 +53,195 @@ export default function Navbar() {
   };
 
   const navigateByVoice = (transcript) => {
-    if (transcript.includes("home")) window.location.href = "/home";
-    else if (transcript.includes("predict")) window.location.href = "/predict";
-    else if (transcript.includes("categor")) window.location.href = "/categories";
-    else if (transcript.includes("stats") || transcript.includes("statistic")) window.location.href = "/stats";
-    else if (transcript.includes("about")) window.location.href = "/about";
-    else if (transcript.includes("contact")) window.location.href = "/contact";
+    const mapping = {
+      "home": "/home",
+      "predict": "/predict",
+      "categor": "/categories",
+      "stats": "/stats",
+      "statistic": "/stats",
+      "about": "/about",
+      "contact": "/contact"
+    };
+    for (const [key, path] of Object.entries(mapping)) {
+      if (transcript.includes(key)) {
+        window.location.href = path;
+        break;
+      }
+    }
   };
 
-  const isActive = (path) => location.pathname === path;
-
   return (
-    <>
-      <nav className="navbar">
-        <div className="navbar-brand">
-          <Logo />
-          <Link to="/home" className="brand-text">
-            <span className="brand-eco">Eco</span>
-            <span className="brand-vision">Vision</span>
-          </Link>
+    <nav className={`premium-navbar ${scrolled ? "scrolled" : ""}`}>
+      <div className="nav-container">
+        <Link to="/" className="nav-brand">
+          <Logo width={40} height={40} />
+          <span className="brand-text">Eco-Vision</span>
+        </Link>
+
+        <div className="nav-menu">
+          {[
+            { path: "/home", label: "Dashboard", icon: "🏠" },
+            { path: "/predict", label: "Predict", icon: "📸" },
+            { path: "/categories", label: "Categories", icon: "📦" },
+            { path: "/stats", label: "Stats", icon: "📊" },
+            { path: "/about", label: "About", icon: "ℹ️" }
+          ].map((item) => (
+            <NavLink 
+              key={item.path}
+              to={item.path} 
+              className={({isActive}) => `nav-link ${isActive ? "active" : ""}`}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              {item.label}
+            </NavLink>
+          ))}
         </div>
-        <div className="navbar-menu">
-          <Link to="/home" className={`nav-link ${isActive("/home") ? "active" : ""}`}>Home</Link>
-          <Link to="/predict" className={`nav-link ${isActive("/predict") ? "active" : ""}`}>Predict</Link>
-          <Link to="/categories" className={`nav-link ${isActive("/categories") ? "active" : ""}`}>Categories</Link>
-          <Link to="/stats" className={`nav-link ${isActive("/stats") ? "active" : ""}`}>Stats</Link>
-          <Link to="/about" className={`nav-link ${isActive("/about") ? "active" : ""}`}>About</Link>
-          <Link to="/contact" className={`nav-link ${isActive("/contact") ? "active" : ""}`}>Contact</Link>
-        </div>
-        <div className="navbar-controls">
-          <button className={`speech-btn ${isSpeechEnabled ? "active" : ""}`} onClick={handleSpeechToggle} title={isSpeechEnabled ? "Disable Speech" : "Enable Speech"}>🎤</button>
+
+        <div className="nav-actions">
+          <button 
+            className={`action-btn speech ${isSpeechEnabled ? "active" : ""}`} 
+            onClick={handleSpeechToggle}
+            title="Toggle Voice Navigation"
+          >
+            🎤
+          </button>
           {isSpeechEnabled && (
-            <button className={`mic-btn ${isListening ? "listening" : ""}`} onClick={handleMicClick} title={isListening ? "Stop Listening" : "Start Listening"}>
-              {isListening ? "🔴" : "⚪"}
+            <button 
+              className={`action-btn mic ${isListening ? "listening" : ""}`} 
+              onClick={handleMicClick}
+            >
+              <span className="dot"></span>
             </button>
           )}
         </div>
-      </nav>
+      </div>
+
       <style>{`
-        .navbar {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 253, 244, 0.95));
-          backdrop-filter: blur(20px);
-          padding: 1rem 2rem;
-          border-bottom: 2px solid rgba(34, 197, 94, 0.2);
-          box-shadow: 0 4px 30px rgba(34, 197, 94, 0.08);
+        .premium-navbar {
           position: sticky;
           top: 0;
-          z-index: 100;
+          z-index: 1000;
+          padding: 1.25rem 2rem;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          background: transparent;
         }
-        .navbar-brand { display: flex; align-items: center; gap: 0.75rem; }
-        .brand-text { text-decoration: none; font-size: 1.7rem; font-weight: 800; letter-spacing: -1px; }
-        .brand-eco { background: linear-gradient(135deg, #16a34a, #22c55e); background-clip: text; -webkit-background-clip: text; color: transparent; }
-        .brand-vision { color: #1e293b; font-weight: 700; }
-        .navbar-menu { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-        .nav-link { 
-          padding: 0.6rem 1.4rem; 
-          text-decoration: none; 
-          color: #475569; 
-          font-weight: 600; 
-          border-radius: 50px; 
-          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
-          position: relative;
-          letter-spacing: 0.5px;
+
+        .premium-navbar.scrolled {
+          padding: 0.75rem 2rem;
+          background: rgba(255, 255, 255, 0.75);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.04);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .nav-link::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.08));
-          border-radius: 50px;
-          opacity: 0;
-          transition: opacity 0.3s ease;
+
+        .nav-container {
+          max-width: 1400px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
-        .nav-link:hover { 
-          color: #16a34a;
+
+        .nav-brand {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          text-decoration: none;
         }
-        .nav-link:hover::before { opacity: 1; }
-        .nav-link.active { 
-          background: linear-gradient(135deg, #16a34a, #15803d); 
-          color: white;
-          box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+
+        .brand-text {
+          font-size: 1.5rem;
+          font-weight: 800;
+          background: linear-gradient(135deg, var(--primary), var(--secondary));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          letter-spacing: -0.5px;
         }
-        .navbar-controls { display: flex; gap: 0.75rem; }
-        .speech-btn, .mic-btn { 
-          background: rgba(34, 197, 94, 0.1); 
-          border: 1px solid rgba(34, 197, 94, 0.2); 
-          border-radius: 50px; 
-          padding: 0.6rem 1rem; 
-          font-size: 1.3rem; 
-          cursor: pointer; 
+
+        .nav-menu {
+          display: flex;
+          gap: 0.5rem;
+          background: rgba(255,255,255,0.5);
+          padding: 0.4rem;
+          border-radius: 100px;
+          border: 1px solid rgba(0,0,0,0.03);
+          backdrop-filter: blur(10px);
+        }
+
+        .nav-link {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          text-decoration: none;
+          color: var(--text-muted);
+          padding: 0.6rem 1.2rem;
+          border-radius: 100px;
+          font-weight: 600;
+          font-size: 0.9rem;
           transition: all 0.3s ease;
-          color: #16a34a;
         }
-        .speech-btn:hover { 
-          background: rgba(34, 197, 94, 0.15); 
-          border-color: rgba(34, 197, 94, 0.4);
+
+        .nav-link:hover {
+          color: var(--text-main);
+          background: rgba(0,0,0,0.03);
         }
-        .speech-btn.active { 
-          background: linear-gradient(135deg, #16a34a, #15803d); 
-          border-color: #16a34a;
+
+        .nav-link.active {
+          background: white;
+          color: var(--primary);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .nav-actions {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .action-btn {
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+          border: 1px solid rgba(0,0,0,0.05);
+          background: white;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.1rem;
+          transition: all 0.3s ease;
+        }
+
+        .action-btn.speech.active {
+          background: var(--primary);
           color: white;
-          box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+          border-color: var(--primary);
         }
-        .mic-btn.listening { 
-          background: linear-gradient(135deg, #ef4444, #dc2626); 
-          border-color: #dc2626;
-          color: white; 
-          animation: pulse 1s infinite; 
+
+        .action-btn.mic.listening {
+          background: #ef4444;
+          border-color: #ef4444;
         }
-        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-        @media (max-width: 768px) {
-          .navbar { flex-direction: column; gap: 1rem; padding: 1rem; }
-          .navbar-menu { justify-content: center; }
-          .nav-link { padding: 0.5rem 1rem; font-size: 0.9rem; }
+
+        .action-btn.mic.listening .dot {
+          width: 12px;
+          height: 12px;
+          background: white;
+          border-radius: 50%;
+          animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.5); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 900px) {
+          .nav-menu { display: none; }
+          .premium-navbar { padding: 1rem; }
         }
       `}</style>
-    </>
+    </nav>
   );
 }

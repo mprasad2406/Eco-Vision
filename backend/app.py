@@ -326,6 +326,58 @@ def get_categories():
         'total': len(classifier.class_names)
     }), 200
 
+@app.route('/api/nlp/query', methods=['POST'])
+def nlp_query():
+    """Natural Language Query interface for waste statistics"""
+    try:
+        data = request.json
+        query = data.get('query', '').lower()
+        
+        if not query:
+            return jsonify({'error': 'No query provided'}), 400
+            
+        stats = Statistics.query.first()
+        if not stats:
+            return jsonify({'answer': "No statistics are available yet. Try classifying some waste first!"}), 200
+
+        # Simple keyword-based NLP logic
+        if 'total' in query or 'how many' in query:
+            if 'upload' in query:
+                return jsonify({'answer': f"A total of {stats.total_uploads} images have been explicitly uploaded."}), 200
+            if 'camera' in query:
+                return jsonify({'answer': f"A total of {stats.total_cameras} images were captured via camera."}), 200
+            return jsonify({'answer': f"The system has processed a total of {stats.total_predictions} waste items so far."}), 200
+            
+        if 'accuracy' in query or 'performance' in query or 'confident' in query:
+            return jsonify({'answer': f"The model is performing well with an average confidence score of {round(stats.average_confidence * 100, 2)}%."}), 200
+            
+        if 'most' in query or 'common' in query or 'frequent' in query:
+            category = stats.most_common_category if stats.most_common_category else "not determined yet"
+            return jsonify({'answer': f"The most frequently detected waste category is '{category}'."}), 200
+            
+        if 'plastic' in query:
+            count = Prediction.query.filter_by(category='Plastic').count()
+            return jsonify({'answer': f"I've found {count} plastic items in the current records."}), 200
+            
+        if 'metal' in query:
+            count = Prediction.query.filter_by(category='Metal').count()
+            return jsonify({'answer': f"There are {count} metal items classified so far."}), 200
+
+        if 'organic' in query or 'food' in query:
+            count = Prediction.query.filter_by(category='Organic').count()
+            return jsonify({'answer': f"There are {count} organic waste entries in the database."}), 200
+
+        if 'electronic' in query or 'e-waste' in query or 'pcb' in query:
+            count = Prediction.query.filter(Prediction.category.in_(['PCB', 'Keyboard', 'Mobile', 'Mouse', 'Printer', 'Television'])).count()
+            return jsonify({'answer': f"Electronic waste (E-waste) accounts for {count} of our detected items."}), 200
+
+        return jsonify({
+            'answer': "I'm not sure about that specific detail. You can ask about 'total waste', 'accuracy', 'most common waste', or specific types like 'plastic' or 'e-waste'."
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/storage-info', methods=['GET'])
 def get_storage_info():
     """Get storage location information"""
