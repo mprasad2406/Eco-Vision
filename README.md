@@ -111,13 +111,35 @@ Expected: `{"status": "healthy", "model": {"loaded": true, "class_count": 17}}`
 - Accessible form inputs & buttons
 - Professional typography hierarchy
 
-### 🌐 **REST API**
-- `/api/predict` - Make predictions
-- `/api/history` - Get prediction history
-- `/api/statistics` - Get analytics data
+### 🌐 **REST API** (Complete Endpoint List)
+**Core Endpoints:**
+- `/api/health` - Health check
+- `/api/model-info` - Model status & metadata
+- `/api/predict` - Make predictions (POST)
 - `/api/categories` - List all 17 categories
 - `/api/storage-info` - View data locations
-- `/api/health` - Health check
+
+**History & Analytics:**
+- `/api/history` - Get prediction history (paginated)
+- `/api/statistics` - Get aggregated statistics
+- `/api/analytics/breakdown` - Category breakdown for charts
+- `/api/analytics/daily` - Daily trends (7 days)
+- `/api/analytics/top-categories` - Top 5 categories
+- `/api/analytics/recent-errors` - Recent corrections
+
+**Natural Language Query (NLP):**
+- `/api/nlp/query` - Process waste questions (20+ intents)
+- `/api/nlp/history` - Query history
+- `/api/nlp/suggestions` - Suggested questions
+
+**Feedback & Corrections:**
+- `/api/feedback` - Submit correction feedback (POST)
+- `/api/feedback/recent` - Get recent corrections
+
+**Backup System:**
+- `/api/backups` - List all backed-up images
+- `/api/backup/<image_id>` - Download specific backup
+- `/api/clear-history` - Clear all predictions (DELETE)
 
 ---
 
@@ -137,7 +159,11 @@ wastemanagement/
 │   ├── 📁 models/                      # ML models
 │   │   └── waste_classifier_model.h5  # Trained model (to add)
 │   │
-│   └── ecovision.db                    # SQLite database
+│   └── data/
+│       ├── database/                  # SQLite database location
+│       │   └── wastehandling.db       # Main database
+│       ├── uploads/                   # Uploaded images
+│       └── backups/                   # Image backups
 │
 ├── 📁 frontend/                        # React + Vite
 │   ├── src/
@@ -260,15 +286,22 @@ Aggregated analytics and insights
 
 ---
 
-## 🔌 API Endpoints
+## 🔌 API Endpoints (Complete Reference)
 
-### Health Check
+### 🏥 Health & Status
 ```http
 GET /api/health
 ```
-Returns: `{ status, timestamp, service }`
+Returns health status, model info, and data locations.
 
-### Predict Waste
+```http
+GET /api/model-info
+```
+Returns: `{ loaded, model_path, class_names_path, class_count }`
+
+---
+
+### 🤖 Prediction
 ```http
 POST /api/predict
 Content-Type: multipart/form-data
@@ -276,43 +309,152 @@ Content-Type: multipart/form-data
 image: File (required)
 source: 'upload' | 'camera' (default: 'upload')
 ```
-Returns: `{ prediction, confidence, top_predictions, image_id }`
+Returns:
+```json
+{
+  "success": true,
+  "prediction": "plastic",
+  "confidence": 92.5,
+  "top_predictions": [
+    {"class": "plastic", "confidence": 0.925},
+    {"class": "paper", "confidence": 0.065},
+    {"class": "trash", "confidence": 0.01}
+  ],
+  "image_id": 1,
+  "prediction_id": 1,
+  "warning": false
+}
+```
 
-### Get History
+---
+
+### 📊 History & Analytics
 ```http
 GET /api/history?limit=20
 ```
-Returns: `[{ id, timestamp, category, confidence, ... }]`
+Get prediction history (latest first).
 
-### Get Statistics
 ```http
 GET /api/statistics
 ```
-Returns: `{ total_predictions, average_confidence, most_common, ... }`
+Get aggregated stats: `{ total_predictions, total_uploads, total_cameras, average_confidence, most_common }`
 
-### Get Categories
 ```http
-GET /api/categories
+GET /api/analytics/breakdown
 ```
-Returns: `{ categories: [...], total: 17 }`
+Category-level breakdown:
+```json
+{
+  "breakdown": [
+    {"category": "plastic", "count": 45, "percentage": 35.2},
+    {"category": "metal", "count": 32, "percentage": 25.0}
+  ],
+  "total": 128
+}
+```
 
-### Get Backups
+```http
+GET /api/analytics/daily?days=7
+```
+Daily prediction counts for last N days.
+
+```http
+GET /api/analytics/top-categories?limit=5
+```
+Top categories by count.
+
+```http
+GET /api/analytics/recent-errors?limit=8
+```
+Recent user corrections/feedback.
+
+---
+
+### 🗣️ Natural Language Queries
+```http
+POST /api/nlp/query
+Content-Type: application/json
+
+{"query": "How many plastic items this week?"}
+```
+
+**Supported query intents (20+):**
+- `today_count` - "How many items today?"
+- `week_count` - "Count this week?"
+- `month_count` - "Monthly total?"
+- `top_category` - "Most common waste?"
+- `comparison` - "Compare plastic vs metal"
+- `performance` - "What's the model accuracy?"
+- `recyclable` - "How much is recyclable?"
+- `ewaste` - "How much e-waste?"
+- `category_count` - "Count of [category]"
+- `trend` - "Show me the trend"
+- `recycle_tips` - "How do I recycle [item]?"
+- `recent` - "What was last classified?"
+- `help` - "What can you do?"
+
+```http
+GET /api/nlp/history?limit=10
+```
+Query history with responses.
+
+```http
+GET /api/nlp/suggestions
+```
+Dynamic suggested questions based on data.
+
+---
+
+### 📝 Feedback & Corrections
+```http
+POST /api/feedback
+Content-Type: application/json
+
+{
+  "prediction_id": 1,
+  "predicted_category": "plastic",
+  "corrected_category": "paper",
+  "confidence": 0.65,
+  "notes": "Actually paper, not plastic"
+}
+```
+Store user corrections for model improvement.
+
+```http
+GET /api/feedback/recent?limit=10
+```
+Get recent corrections.
+
+---
+
+### 💾 Backup System
 ```http
 GET /api/backups
 ```
-Returns: `[{ id, timestamp, filename, source, size }]`
+List all backed-up images.
 
-### Download Backup
 ```http
 GET /api/backup/<image_id>
 ```
-Returns: `{ filename, path, timestamp }`
+Download specific backup metadata.
 
-### Clear History
 ```http
 DELETE /api/clear-history
 ```
-Returns: `{ success, message }`
+Clear all prediction history (WARNING: irreversible).
+
+---
+
+### 📂 Utilities
+```http
+GET /api/categories
+```
+Returns: `{ categories: [...17 classes...], total: 17 }`
+
+```http
+GET /api/storage-info
+```
+Full storage paths and file listings.
 
 ---
 
@@ -414,9 +556,9 @@ FLASK_ENV=development
 FLASK_APP=app.py
 DEBUG=True
 SECRET_KEY=your-secret-key
-DATABASE_URL=sqlite:///ecovision.db
-UPLOAD_FOLDER=uploads
-BACKUP_FOLDER=backups
+DATABASE_URL=sqlite:///data/database/wastehandling.db
+UPLOAD_FOLDER=data/uploads
+BACKUP_FOLDER=data/backups
 MODEL_PATH=models/waste_classifier_model.h5
 HOST=0.0.0.0
 PORT=5000
@@ -491,7 +633,7 @@ http://localhost:5173
 
 ### Database Changes
 1. Update model classes in `backend/app.py`
-2. Delete `backend/ecovision.db`
+2. Delete `backend/data/database/wastehandling.db`
 3. Run `python -c "from app import app, db; app.app_context().push(); db.create_all()"`
 
 ### Training Custom Model
