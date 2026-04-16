@@ -1019,13 +1019,16 @@ with app.app_context():
 from asgiref.wsgi import WsgiToAsgi
 asgi_app = WsgiToAsgi(app)
 
+
+
 if __name__ == '__main__':
-    print("✅ Starting EcoVision AI Flask Server...")
-    print("   Visit: http://localhost:5000")
-    print("   Press Ctrl+C to stop\n")
-    
-    # Suppress werkzeug logging
-    logging.getLogger('werkzeug').setLevel(logging.ERROR)
-    logging.getLogger('werkzeug').disabled = True
-    
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=True)
+    print("Starting EcoVision AI Server...")
+
+    port = int(os.environ.get("PORT", 8080))  # 🔥 REQUIRED
+
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=False,
+        use_reloader=False
+    )
